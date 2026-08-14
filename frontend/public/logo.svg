@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4f7df9"/>
+      <stop offset="100%" stop-color="#00d4ff"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00c896"/>
+      <stop offset="100%" stop-color="#00d4ff"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer circle -->
+  <circle cx="24" cy="24" r="22" stroke="url(#g1)" stroke-width="2" fill="none" opacity="0.3"/>
+  <!-- Flow waves -->
+  <path d="M8 24 C12 18, 16 18, 20 24 S28 30, 32 24 S36 18, 40 24" stroke="url(#g1)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M8 20 C12 14, 16 14, 20 20 S28 26, 32 20 S36 14, 40 20" stroke="url(#g2)" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <path d="M8 28 C12 22, 16 22, 20 28 S28 34, 32 28 S36 22, 40 28" stroke="url(#g2)" stroke-width="1.5" fill="none" stroke-linecap="round" opacity="0.5"/>
+  <!-- Center dot -->
+  <circle cx="24" cy="24" r="3" fill="url(#g1)"/>
+</svg>
