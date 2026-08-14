@@ -5,7 +5,8 @@
  * Usage: node scripts/generate-interactions.js
  */
 
-const StellarSdk = require('@stellar/stellar-sdk');
+const path = require('path');
+const StellarSdk = require(path.join(__dirname, '../frontend/node_modules/@stellar/stellar-sdk'));
 
 const HORIZON_URL = 'https://horizon-testnet.stellar.org';
 const FRIENDBOT_URL = 'https://friendbot.stellar.org';
