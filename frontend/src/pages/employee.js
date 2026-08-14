@@ -1,12 +1,15 @@
 /**
  * StreamFlow — Employee Dashboard
+ * Real-time continuous streaming payroll with instant withdrawals and SEP-24 off-ramp.
  */
 
 import {
-  getEmployeeStreams, getAccrued, withdrawFromStream,
+  getEmployeeStreams,
+  getAccrued,
+  withdrawFromStream,
   getTransactionHistory,
 } from '../contracts.js';
-import { truncateAddress } from '../stellar.js';
+import { truncateAddress, CONTRACTS, getAccountBalance } from '../stellar.js';
 import { trackPageView, trackEvent } from '../analytics.js';
 import { renderOfframpSection } from '../anchor.js';
 import { navigate } from '../router.js';
@@ -23,6 +26,16 @@ export function renderEmployee(app) {
   let intervals = [];
   let showWithdrawModal = false;
   let withdrawStreamId = null;
+  let isWithdrawing = false;
+  let employeeBalance = 0;
+
+  getAccountBalance(address)
+    .then((b) => {
+      employeeBalance = b.xlm;
+      const balEl = document.getElementById('employee-balance-val');
+      if (balEl) balEl.textContent = `${employeeBalance.toFixed(2)} XLM`;
+    })
+    .catch(() => {});
 
   function render() {
     const streams = getEmployeeStreams(address);
@@ -32,7 +45,7 @@ export function renderEmployee(app) {
     let totalWithdrawn = 0;
     let activeStreams = 0;
 
-    streams.forEach(s => {
+    streams.forEach((s) => {
       const accrued = getAccrued(s.id);
       totalAccrued += accrued;
       totalWithdrawn += s.withdrawn;
@@ -47,13 +60,18 @@ export function renderEmployee(app) {
             <span>Stream<span class="gradient-text">Flow</span></span>
           </a>
           <ul class="navbar-nav">
-            <li><a href="/employer" data-link>Employer</a></li>
+            <li><a href="/employer" data-link>Employer Portal</a></li>
             <li><a href="/employee" data-link class="active">Employee</a></li>
             <li>
-              <div class="nav-wallet">
+              <div class="nav-wallet" title="${address}">
                 <span class="dot"></span>
-                ${truncateAddress(address)}
+                <span>${truncateAddress(address)}</span>
               </div>
+            </li>
+            <li>
+              <button class="btn btn-ghost btn-sm" id="nav-btn-disconnect" title="Disconnect wallet">
+                Logout
+              </button>
             </li>
           </ul>
         </div>
@@ -61,27 +79,38 @@ export function renderEmployee(app) {
 
       <div class="dashboard">
         <div class="container">
-          <div class="dashboard-header">
-            <h1>Employee Dashboard</h1>
-            <p class="text-muted">Your earnings are streaming in real-time.</p>
+          <div class="dashboard-header flex flex-between" style="flex-wrap: wrap; gap: var(--space-md);">
+            <div>
+              <h1>Employee Portal</h1>
+              <p class="text-muted">
+                Wallet: <span class="mono text-accent">${address}</span>
+              </p>
+            </div>
+            <div class="flex gap-sm">
+              <a href="/employer" data-link class="btn btn-outline btn-sm">
+                Switch to Employer View
+              </a>
+            </div>
           </div>
 
-          <!-- Live Balance Hero -->
+          <!-- Live Streaming Balance Hero -->
           <div class="card live-balance mb-xl">
-            <div class="label">Available to Withdraw</div>
+            <div class="label">Available Accrued Balance</div>
             <div>
               <span class="amount" id="live-total-accrued">${totalAccrued.toFixed(4)}</span>
               <span class="currency">XLM</span>
             </div>
             <div class="rate">
-              ${activeStreams > 0 ? `${activeStreams} active stream${activeStreams > 1 ? 's' : ''} • Earning every second` : 'No active streams'}
+              ${activeStreams > 0
+                ? `<span class="badge badge-active">${activeStreams} Active Stream${activeStreams > 1 ? 's' : ''}</span> • Earning every second on Soroban`
+                : '<span class="badge badge-paused">No Active Incoming Streams</span>'}
             </div>
           </div>
 
           <div class="stats-grid">
             <div class="card stat-card">
               <div class="stat-value streaming" id="stat-accrued">${totalAccrued.toFixed(2)}</div>
-              <div class="stat-label">Current Accrued</div>
+              <div class="stat-label">Accrued (Unwithdrawn)</div>
             </div>
             <div class="card stat-card">
               <div class="stat-value" style="color: var(--accent-cyan);">
@@ -94,61 +123,70 @@ export function renderEmployee(app) {
               <div class="stat-label">Active Streams</div>
             </div>
             <div class="card stat-card">
-              <div class="stat-value" style="color: var(--accent-violet);">
-                ${(totalAccrued + totalWithdrawn).toFixed(2)}
+              <div class="stat-value" id="employee-balance-val" style="color: var(--accent-violet);">
+                ${employeeBalance ? employeeBalance.toFixed(2) + ' XLM' : '—'}
               </div>
-              <div class="stat-label">Lifetime Earned</div>
+              <div class="stat-label">Wallet Balance</div>
             </div>
           </div>
 
           <!-- Active Streams -->
           <div class="card mb-xl">
-            <h3 style="font-size: 1.1rem; margin-bottom: var(--space-md);">📡 Active Streams</h3>
+            <div class="flex flex-between mb-md">
+              <h3 style="font-size: 1.1rem;">📡 Incoming Payroll Streams</h3>
+              <span class="text-muted" style="font-size: 0.8rem;">
+                Contract: <span class="mono">${truncateAddress(CONTRACTS.STREAM)}</span>
+              </span>
+            </div>
+
             ${streams.length === 0 ? `
               <div class="empty-state">
                 <div class="empty-icon">📭</div>
-                <p>No incoming streams yet. Share your address with your employer to get started.</p>
-                <div class="wallet-status mt-md" style="display: inline-flex;">
-                  ${address}
+                <p>No streams assigned to your address yet.</p>
+                <p class="text-muted" style="font-size: 0.85rem; margin-top: var(--space-xs);">
+                  Share your public key with your employer:
+                </p>
+                <div class="wallet-status mt-sm" style="display: inline-flex; cursor: pointer;" id="copy-address-btn" title="Click to copy">
+                  📋 ${address}
                 </div>
               </div>
             ` : `
               <div class="flex flex-col gap-md">
-                ${streams.map(s => renderStreamCard(s)).join('')}
+                ${streams.map((s) => renderStreamCard(s)).join('')}
               </div>
             `}
           </div>
 
-          <!-- Off-Ramp Section -->
+          <!-- Off-Ramp Section (SEP-24) -->
           <div class="mb-xl" id="offramp-section"></div>
 
           <!-- Transaction History -->
           <div class="card">
-            <h3 style="font-size: 1.1rem; margin-bottom: var(--space-md);">📋 Transaction History</h3>
+            <h3 style="font-size: 1.1rem; margin-bottom: var(--space-md);">📋 Verified Activity & Receipts</h3>
             ${txHistory.length === 0 ? `
               <div class="empty-state" style="padding: var(--space-lg);">
-                <p class="text-muted">No transactions yet.</p>
+                <p class="text-muted">No transactions recorded yet.</p>
               </div>
             ` : `
               <div class="tx-list">
-                ${txHistory.slice(0, 10).map(tx => `
+                ${txHistory.slice(0, 10).map((tx) => `
                   <div class="tx-item">
                     <div>
                       <div style="font-size: 0.85rem; font-weight: 500;">
-                        ${tx.type === 'withdraw' ? '💰 Withdrawal' :
+                        ${tx.type === 'withdraw' ? '💰 Payroll Withdrawal' :
                           tx.type === 'create_stream' ? '📡 Stream Created' :
                           tx.type === 'cancel_stream' ? '⛔ Stream Cancelled' :
                           tx.type}
                       </div>
                       <div class="tx-hash">
-                        <a href="https://stellar.expert/explorer/testnet/tx/${tx.txHash}" target="_blank">
-                          ${tx.txHash.slice(0, 12)}...
+                        <a href="https://stellar.expert/explorer/testnet/tx/${tx.txHash}" target="_blank" style="color: var(--accent-cyan);">
+                          Tx: ${tx.txHash.slice(0, 14)}... ↗
                         </a>
                       </div>
                       <div class="tx-time">${new Date(tx.timestamp).toLocaleString()}</div>
                     </div>
                     <div style="text-align: right;">
-                      ${tx.amount ? `<div class="tx-amount">+${tx.amount.toFixed(4)} XLM</div>` : ''}
+                      ${tx.amount ? `<div class="tx-amount">+${Number(tx.amount).toFixed(4)} XLM</div>` : ''}
                       ${tx.streamId !== undefined ? `<div class="text-muted" style="font-size: 0.75rem;">Stream #${tx.streamId}</div>` : ''}
                     </div>
                   </div>
@@ -174,66 +212,68 @@ export function renderEmployee(app) {
 
   function renderStreamCard(s) {
     const accrued = getAccrued(s.id);
-    const progress = s.totalFunded > 0 ? ((s.withdrawn + accrued) / s.totalFunded * 100) : 0;
-    const remaining = s.totalFunded - s.withdrawn;
+    const progress = s.totalFunded > 0 ? ((s.withdrawn + accrued) / s.totalFunded) * 100 : 0;
+    const remaining = Math.max(0, s.totalFunded - s.withdrawn);
 
     const statusClass = {
-      'Active': 'badge-active',
-      'Paused': 'badge-paused',
-      'Cancelled': 'badge-cancelled',
-      'Completed': 'badge-completed',
+      Active: 'badge-active',
+      Paused: 'badge-paused',
+      Cancelled: 'badge-cancelled',
+      Completed: 'badge-completed',
     }[s.status] || '';
 
     return `
       <div class="card-flat" style="padding: var(--space-lg);">
-        <div class="flex flex-between mb-md">
+        <div class="flex flex-between mb-md" style="flex-wrap: wrap; gap: var(--space-sm);">
           <div>
             <div class="flex gap-sm" style="align-items: center;">
-              <span class="font-semibold">Stream #${s.id}</span>
+              <span class="font-semibold" style="font-size: 1.05rem;">Stream #${s.id}</span>
               <span class="badge ${statusClass}">${s.status}</span>
             </div>
             <div class="text-muted" style="font-size: 0.8rem; margin-top: 4px;">
-              From: <span class="mono">${truncateAddress(s.employer)}</span> • ${s.token}
+              Employer: <span class="mono">${truncateAddress(s.employer)}</span> • Token: <strong>${s.token}</strong>
             </div>
           </div>
           ${s.status === 'Active' || s.status === 'Paused' ? `
             <button class="btn btn-success btn-sm" data-withdraw="${s.id}">
-              Withdraw
+              💰 Withdraw Accrued
             </button>
           ` : ''}
         </div>
 
         <div class="grid-4 gap-md mb-md">
           <div>
-            <div class="text-muted" style="font-size: 0.75rem;">Rate</div>
-            <div class="mono font-semibold">${s.ratePerSecond.toFixed(4)}/s</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Streaming Rate</div>
+            <div class="mono font-semibold">${s.ratePerSecond.toFixed(4)} XLM/s</div>
           </div>
           <div>
-            <div class="text-muted" style="font-size: 0.75rem;">Accrued</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Live Accrued</div>
             <div class="mono font-semibold text-success" data-stream-accrued="${s.id}">
-              ${accrued.toFixed(4)}
+              ${accrued.toFixed(4)} XLM
             </div>
           </div>
           <div>
-            <div class="text-muted" style="font-size: 0.75rem;">Withdrawn</div>
-            <div class="mono font-semibold">${s.withdrawn.toFixed(4)}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Total Withdrawn</div>
+            <div class="mono font-semibold">${s.withdrawn.toFixed(4)} XLM</div>
           </div>
           <div>
-            <div class="text-muted" style="font-size: 0.75rem;">Remaining</div>
-            <div class="mono font-semibold">${remaining.toFixed(4)}</div>
+            <div class="text-muted" style="font-size: 0.75rem;">Remaining Escrow</div>
+            <div class="mono font-semibold">${remaining.toFixed(4)} XLM</div>
           </div>
         </div>
 
         <div class="analytics-bar">
           <div class="fill" style="width: ${Math.min(progress, 100)}%;"></div>
         </div>
-        <div class="text-muted mt-sm" style="font-size: 0.75rem;">${progress.toFixed(1)}% utilized</div>
+        <div class="text-muted mt-sm" style="font-size: 0.75rem;">
+          ${progress.toFixed(1)}% stream completed
+        </div>
       </div>
     `;
   }
 
   function renderWithdrawModal() {
-    const stream = getEmployeeStreams(address).find(s => s.id === withdrawStreamId);
+    const stream = getEmployeeStreams(address).find((s) => s.id === withdrawStreamId);
     if (!stream) return '';
     const maxAccrued = getAccrued(stream.id);
 
@@ -246,12 +286,12 @@ export function renderEmployee(app) {
           </div>
 
           <div class="card-flat mb-md" style="padding: var(--space-md); text-align: center;">
-            <div class="text-muted" style="font-size: 0.8rem;">Available</div>
-            <div class="mono font-bold text-success" style="font-size: 1.5rem;">${maxAccrued.toFixed(4)} XLM</div>
+            <div class="text-muted" style="font-size: 0.8rem;">Current Accrued Balance</div>
+            <div class="mono font-bold text-success" style="font-size: 1.6rem;">${maxAccrued.toFixed(4)} XLM</div>
           </div>
 
           <div class="form-group mb-md">
-            <label class="form-label">Withdrawal Amount</label>
+            <label class="form-label">Withdrawal Amount (XLM)</label>
             <input type="number" class="form-input mono" id="withdraw-amount"
               placeholder="0.00" step="0.0001" min="0.0001" max="${maxAccrued}"
               value="${maxAccrued.toFixed(4)}">
@@ -261,11 +301,11 @@ export function renderEmployee(app) {
             <button class="btn btn-outline btn-sm" data-pct="25">25%</button>
             <button class="btn btn-outline btn-sm" data-pct="50">50%</button>
             <button class="btn btn-outline btn-sm" data-pct="75">75%</button>
-            <button class="btn btn-outline btn-sm" data-pct="100">Max</button>
+            <button class="btn btn-outline btn-sm" data-pct="100">Max (100%)</button>
           </div>
 
-          <button class="btn btn-success w-full" id="btn-submit-withdraw">
-            Withdraw
+          <button class="btn btn-success w-full" id="btn-submit-withdraw" ${isWithdrawing ? 'disabled' : ''}>
+            ${isWithdrawing ? '<span class="spinner"></span> Confirming on Soroban...' : 'Confirm Withdrawal to Wallet'}
           </button>
         </div>
       </div>
@@ -273,8 +313,21 @@ export function renderEmployee(app) {
   }
 
   function attachListeners() {
-    // Withdraw buttons on stream cards
-    document.querySelectorAll('[data-withdraw]').forEach(btn => {
+    // Logout
+    document.getElementById('nav-btn-disconnect')?.addEventListener('click', () => {
+      localStorage.removeItem('streamflow_address');
+      localStorage.removeItem('streamflow_role');
+      navigate('/onboarding');
+    });
+
+    // Copy address button
+    document.getElementById('copy-address-btn')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(address);
+      showToast('Address copied to clipboard!', 'success');
+    });
+
+    // Withdraw triggers
+    document.querySelectorAll('[data-withdraw]').forEach((btn) => {
       btn.addEventListener('click', () => {
         withdrawStreamId = parseInt(btn.dataset.withdraw);
         showWithdrawModal = true;
@@ -296,32 +349,38 @@ export function renderEmployee(app) {
     });
 
     // Percentage buttons
-    document.querySelectorAll('[data-pct]').forEach(btn => {
+    document.querySelectorAll('[data-pct]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const pct = parseInt(btn.dataset.pct);
         const maxAccrued = getAccrued(withdrawStreamId);
-        const amount = (maxAccrued * pct / 100);
+        const amount = (maxAccrued * pct) / 100;
         const input = document.getElementById('withdraw-amount');
         if (input) input.value = amount.toFixed(4);
       });
     });
 
     // Submit withdrawal
-    document.getElementById('btn-submit-withdraw')?.addEventListener('click', () => {
+    document.getElementById('btn-submit-withdraw')?.addEventListener('click', async () => {
       const amount = parseFloat(document.getElementById('withdraw-amount')?.value);
       if (!amount || amount <= 0) {
-        showToast('Invalid amount', 'error');
+        showToast('Please enter a valid amount greater than 0', 'error');
         return;
       }
 
+      isWithdrawing = true;
+      render();
+
       try {
-        withdrawFromStream(withdrawStreamId, amount, address);
+        await withdrawFromStream(withdrawStreamId, amount, address);
         showWithdrawModal = false;
-        showToast(`Withdrew ${amount.toFixed(4)} XLM successfully!`, 'success');
+        isWithdrawing = false;
+        showToast(`Successfully withdrew ${amount.toFixed(4)} XLM to your wallet!`, 'success');
         trackEvent('employee', 'withdraw', address, amount);
         render();
       } catch (err) {
-        showToast(err.message, 'error');
+        isWithdrawing = false;
+        showToast(err.message || 'Withdrawal failed', 'error');
+        render();
       }
     });
   }
@@ -331,17 +390,17 @@ export function renderEmployee(app) {
     intervals = [];
 
     const interval = setInterval(() => {
-      // Update individual stream accruals
-      document.querySelectorAll('[data-stream-accrued]').forEach(el => {
+      // Update individual stream cards
+      document.querySelectorAll('[data-stream-accrued]').forEach((el) => {
         const id = parseInt(el.dataset.streamAccrued);
         const accrued = getAccrued(id);
-        el.textContent = accrued.toFixed(4);
+        el.textContent = `${accrued.toFixed(4)} XLM`;
       });
 
-      // Update total accrued
+      // Update total accrued in hero
       const streams = getEmployeeStreams(address);
       let total = 0;
-      streams.forEach(s => {
+      streams.forEach((s) => {
         total += getAccrued(s.id);
       });
 
