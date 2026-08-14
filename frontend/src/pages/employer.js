@@ -15,7 +15,13 @@ import {
   createTreasury,
   depositToTreasury,
 } from '../contracts.js';
-import { truncateAddress, CONTRACTS, getAccountBalance } from '../stellar.js';
+import {
+  truncateAddress,
+  CONTRACTS,
+  getAccountBalance,
+  disconnectWallet,
+  getConnectedWalletType,
+} from '../stellar.js';
 import { trackPageView, trackEvent } from '../analytics.js';
 import { navigate } from '../router.js';
 
@@ -23,6 +29,7 @@ export function renderEmployer(app) {
   trackPageView('/employer');
 
   const address = localStorage.getItem('streamflow_address') || '';
+  const walletType = getConnectedWalletType() || localStorage.getItem('streamflow_wallet_type') || 'wallet';
   if (!address) {
     navigate('/onboarding');
     return;
@@ -61,20 +68,21 @@ export function renderEmployer(app) {
       <nav class="navbar">
         <div class="container">
           <a href="/" data-link class="navbar-brand">
-            <img src="/logo.svg" alt="StreamFlow">
+            <img src="/logo.svg" alt="StreamFlow" width="28" height="28">
             <span>Stream<span class="gradient-text">Flow</span></span>
           </a>
           <ul class="navbar-nav">
             <li><a href="/employer" data-link class="active">Employer</a></li>
-            <li><a href="/employee" data-link>Employee Portal</a></li>
+            <li><a href="/employee" data-link>Employee</a></li>
             <li>
-              <div class="nav-wallet" title="${address}">
+              <div class="nav-wallet-chip" title="${address}">
                 <span class="dot"></span>
-                <span>${truncateAddress(address)}</span>
+                <span class="chip-text">${truncateAddress(address)}</span>
+                <span class="chip-badge">${walletType.toUpperCase()}</span>
               </div>
             </li>
             <li>
-              <button class="btn btn-ghost btn-sm" id="nav-btn-disconnect" title="Disconnect wallet">
+              <button class="btn btn-ghost btn-sm text-danger" id="nav-btn-disconnect" title="Disconnect wallet">
                 Logout
               </button>
             </li>
@@ -317,8 +325,7 @@ export function renderEmployer(app) {
   function attachListeners() {
     // Logout
     document.getElementById('nav-btn-disconnect')?.addEventListener('click', () => {
-      localStorage.removeItem('streamflow_address');
-      localStorage.removeItem('streamflow_role');
+      disconnectWallet();
       navigate('/onboarding');
     });
 

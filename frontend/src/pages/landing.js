@@ -158,7 +158,7 @@ export function renderLanding(app) {
           Real-time payroll streaming on Stellar. Built with Soroban smart contracts.
         </p>
         <p class="text-muted mt-md" style="font-size: 0.75rem;">
-          © 2025 StreamFlow • Testnet Demo •
+          © 2026 StreamFlow • Testnet Demo •
           <a href="https://stellar.org" target="_blank" style="color: var(--accent-cyan);">Powered by Stellar</a>
         </p>
       </div>

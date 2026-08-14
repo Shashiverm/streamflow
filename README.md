@@ -199,27 +199,52 @@ All transactions are verified on Stellar Testnet and viewable on Stellar Expert:
 
 ## 📸 Screenshots
 
-### Landing Page
+### 🏠 Landing Page
 Premium dark-mode landing with animated streaming counter, feature cards, and how-it-works section.
 
-### Employer Dashboard
+![Landing Page](imgs/landing_page.png)
+
+### 🔐 Multi-Wallet Connection
+Support for Freighter, Albedo (Web & Mobile), xBull, Rabet, Hana, Instant 1-Click testnet accounts, and Stellar secret keys.
+
+![Wallet Connection](imgs/wallet_conn.png)
+
+### 💼 Portal Selection
+Role-based onboarding allowing users to enter either the Employer or Employee portal.
+
+![Selecting Portal](imgs/selecting_portal.png)
+
+### 🏢 Employer Dashboard
 - Real-time accrued balances updating every second
 - Create, pause, resume, cancel, and top-up streams
 - Treasury management with deposit/withdraw
 
-### Employee Dashboard
+![Employer Dashboard](imgs/employer_dashboard.png)
+
+### ➕ Create Payroll Stream
+Form modal to configure recipient address, streaming rate per second, token, and total duration.
+
+![Payroll Stream Form](imgs/payroll_stream_form.png)
+
+### 👷 Employee Dashboard
 - Large live balance counter showing earnings accumulating per second
 - Stream cards with progress bars
 - Withdrawal with percentage buttons (25%, 50%, 75%, Max)
 - Transaction history with Stellar Expert links
 
-### Off-Ramp (SEP-24 Simulation)
+![Employee Dashboard](imgs/employee_dashboard.png)
+
+### 🌍 Off-Ramp (SEP-24 Simulation)
 - Multi-currency conversion (USD, EUR, GBP, INR, NGN, BRL)
 - Real-time conversion preview with fees
 - Transaction history
 
-### Mobile Responsive
-Fully responsive at 375px, 768px, and 1024px breakpoints.
+![Off-Ramp](imgs/off_ramp.png)
+
+### 📱 Mobile Responsive
+Fully responsive on mobile phones, tablets, and desktops (375px, 768px, and 1024px+ breakpoints).
+
+![Mobile Responsive](imgs/mobile_responsive.png)
 
 ---
 

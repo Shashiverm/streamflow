@@ -1,16 +1,19 @@
 /**
- * StreamFlow — Onboarding & Wallet Connection Page
- * Real Stellar Desktop Extension (Freighter) and Testnet Account Connection.
+ * StreamFlow — Onboarding & Multi-Wallet Connection Page
+ * Connects Freighter, Albedo (Web & Mobile), xBull, Rabet, Hana,
+ * Instant 1-Click Testnet Demo Accounts, and Stellar Secret Keys.
  */
 
 import {
-  isFreighterAvailable,
-  connectFreighter,
-  connectSecretKey,
+  SUPPORTED_WALLETS,
+  connectWallet,
   fundWithFriendbot,
   getAccountBalance,
   truncateAddress,
   CONTRACTS,
+  getActiveSecretKey,
+  getConnectedWalletType,
+  disconnectWallet,
 } from '../stellar.js';
 import { trackPageView, trackEvent } from '../analytics.js';
 import { navigate } from '../router.js';
@@ -22,24 +25,29 @@ export function renderOnboarding(app) {
   let walletAddress = localStorage.getItem('streamflow_address') || '';
   let walletType = localStorage.getItem('streamflow_wallet_type') || 'freighter';
   let isLoading = false;
+  let connectingWalletId = null;
   let isFunding = false;
   let selectedRole = localStorage.getItem('streamflow_role') || '';
   let balance = 0;
-  let freighterInstalled = false;
-  let showSecretKeyInput = false;
+  let activeTab = 'all'; // 'all' | 'mobile' | 'extension' | 'quick'
+  let secretKeyInput = '';
+  let showSecretInput = false;
+  let copiedText = '';
+  let walletStatusMap = {};
 
-  // Check if Freighter is available
-  isFreighterAvailable().then((installed) => {
-    freighterInstalled = installed;
-    const badge = document.getElementById('freighter-status-badge');
-    if (badge) {
-      badge.innerHTML = installed
-        ? '<span class="badge badge-active" style="font-size: 0.75rem;">Freighter Detected</span>'
-        : '<span class="badge badge-paused" style="font-size: 0.75rem;">Extension Not Detected</span>';
+  // Probe wallet availability
+  async function probeWallets() {
+    for (const w of SUPPORTED_WALLETS) {
+      try {
+        walletStatusMap[w.id] = await w.isAvailable();
+      } catch {
+        walletStatusMap[w.id] = false;
+      }
     }
-  });
+  }
+  probeWallets();
 
-  // If already connected, auto-check balance and jump to step 2 or 3
+  // If already connected, auto-check balance and jump to step 2
   if (walletAddress) {
     step = 2;
     getAccountBalance(walletAddress)
@@ -53,28 +61,52 @@ export function renderOnboarding(app) {
 
   function render() {
     app.innerHTML = `
+      <div id="toast-container" class="toast-container"></div>
+
       <nav class="navbar">
-        <div class="container">
+        <div class="container navbar-container">
           <a href="/" data-link class="navbar-brand">
-            <img src="/logo.svg" alt="StreamFlow">
+            <img src="/logo.svg" alt="StreamFlow" width="28" height="28">
             <span>Stream<span class="gradient-text">Flow</span></span>
           </a>
-          <div class="flex gap-md" style="align-items: center;">
-            <div id="freighter-status-badge">
-              ${freighterInstalled
-                ? '<span class="badge badge-active" style="font-size: 0.75rem;">Freighter Detected</span>'
-                : '<span class="badge badge-paused" style="font-size: 0.75rem;">Extension Not Detected</span>'}
-            </div>
+          <div class="flex gap-sm align-center">
+            ${walletAddress ? `
+              <div class="nav-wallet-chip">
+                <span class="dot"></span>
+                <span class="chip-text">${truncateAddress(walletAddress)}</span>
+                <span class="chip-badge">${walletType.toUpperCase()}</span>
+              </div>
+            ` : ''}
             <a href="/" data-link class="btn btn-ghost btn-sm">Home</a>
           </div>
         </div>
       </nav>
 
-      <div class="onboarding">
-        <div class="card onboarding-card">
-          ${step === 1 ? renderStep1() : ''}
-          ${step === 2 ? renderStep2() : ''}
-          ${step === 3 ? renderStep3() : ''}
+      <div class="onboarding-wrapper">
+        <div class="container" style="max-width: 680px; width: 100%;">
+          <!-- Progress Stepper -->
+          <div class="stepper mb-lg">
+            <div class="step-item ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}">
+              <div class="step-circle">${step > 1 ? '✓' : '1'}</div>
+              <div class="step-title">Connect Wallet</div>
+            </div>
+            <div class="step-line ${step >= 2 ? 'active' : ''}"></div>
+            <div class="step-item ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}">
+              <div class="step-circle">${step > 2 ? '✓' : '2'}</div>
+              <div class="step-title">Fund & Verify</div>
+            </div>
+            <div class="step-line ${step >= 3 ? 'active' : ''}"></div>
+            <div class="step-item ${step >= 3 ? 'active' : ''}">
+              <div class="step-circle">3</div>
+              <div class="step-title">Select Portal</div>
+            </div>
+          </div>
+
+          <div class="card onboarding-card">
+            ${step === 1 ? renderStep1() : ''}
+            ${step === 2 ? renderStep2() : ''}
+            ${step === 3 ? renderStep3() : ''}
+          </div>
         </div>
       </div>
     `;
@@ -83,119 +115,230 @@ export function renderOnboarding(app) {
   }
 
   function renderStep1() {
+    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
     return `
-      <div class="icon-large">🔐</div>
-      <h2 style="margin-bottom: var(--space-xs);">Connect Stellar Wallet</h2>
-      <p class="text-muted mb-lg" style="font-size: 0.9rem;">
-        Connect your desktop wallet to access Soroban payroll contracts on Stellar Testnet.
-      </p>
+      <div class="text-center mb-md">
+        <div class="icon-large mb-xs">🔐</div>
+        <h2>Connect Stellar Wallet</h2>
+        <p class="text-muted" style="font-size: 0.9rem;">
+          Choose your preferred wallet to access real Soroban streaming payroll on Stellar Testnet.
+        </p>
+      </div>
 
-      <div class="flex flex-col gap-md">
-        <button class="btn btn-primary btn-lg w-full" id="btn-connect-freighter" ${isLoading ? 'disabled' : ''}>
-          ${isLoading ? '<span class="spinner"></span> Connecting...' : '🦊 Connect with Freighter Extension'}
-        </button>
-
-        <div class="card-flat" style="padding: var(--space-md); text-align: left;">
-          <div class="flex flex-between mb-xs">
-            <span class="font-semibold" style="font-size: 0.85rem;">Freighter Extension</span>
-            <a href="https://www.freighter.app/" target="_blank" style="font-size: 0.8rem; color: var(--accent-cyan);">
-              Install Extension ↗
-            </a>
+      ${isMobileDevice ? `
+        <div class="mobile-wallet-tip mb-md">
+          <span style="font-size: 1.1rem;">📱</span>
+          <div style="font-size: 0.85rem; text-align: left;">
+            <strong>Mobile User Detected:</strong> We recommend <strong>Albedo</strong> (opens in-browser, no download needed) or <strong>Instant Demo Account</strong> for instant 10,000 XLM testing.
           </div>
-          <p class="text-muted" style="font-size: 0.8rem; margin: 0;">
-            Freighter is the official desktop browser extension for Stellar & Soroban.
-          </p>
         </div>
+      ` : ''}
 
-        <div class="text-muted text-center" style="font-size: 0.8rem; margin: var(--space-xs) 0;">
-          ──────── or ────────
-        </div>
+      <!-- Filter Tabs -->
+      <div class="wallet-tabs mb-md">
+        <button class="wallet-tab-btn ${activeTab === 'all' ? 'active' : ''}" data-tab="all">All Wallets</button>
+        <button class="wallet-tab-btn ${activeTab === 'mobile' ? 'active' : ''}" data-tab="mobile">Mobile & Web</button>
+        <button class="wallet-tab-btn ${activeTab === 'extension' ? 'active' : ''}" data-tab="extension">Extensions</button>
+        <button class="wallet-tab-btn ${activeTab === 'quick' ? 'active' : ''}" data-tab="quick">⚡ Instant Demo</button>
+      </div>
 
-        ${!showSecretKeyInput ? `
-          <button class="btn btn-outline w-full" id="btn-toggle-secret">
-            🔑 Connect with Stellar Secret Key (Testnet)
+      <!-- Wallet Options Grid -->
+      <div class="wallet-list flex flex-col gap-sm">
+        ${renderWalletCards()}
+      </div>
+
+      <!-- Secret Key Accordion -->
+      <div class="mt-md pt-sm" style="border-top: 1px solid var(--border-subtle);">
+        ${!showSecretInput ? `
+          <button class="btn btn-ghost w-full" id="btn-toggle-secret-input" style="font-size: 0.85rem;">
+            🔑 Or connect with a Stellar Secret Key / Seed
           </button>
         ` : `
-          <div class="form-group text-left">
-            <label class="form-label">Stellar Testnet Secret Key (starts with S...)</label>
-            <input type="password" class="form-input mono" id="input-secret-key"
-              placeholder="S..." autocomplete="off">
-            <button class="btn btn-outline w-full mt-sm" id="btn-submit-secret" ${isLoading ? 'disabled' : ''}>
-              ${isLoading ? '<span class="spinner"></span>' : 'Authorize & Connect Key'}
+          <div class="card-flat" style="padding: var(--space-md); text-align: left;">
+            <div class="flex flex-between mb-xs">
+              <label class="form-label" style="margin: 0; font-size: 0.85rem;">Stellar Secret Key (Testnet)</label>
+              <button class="btn btn-ghost btn-sm" id="btn-close-secret-input" style="padding: 2px 6px;">✕</button>
+            </div>
+            <p class="text-muted" style="font-size: 0.75rem; margin-bottom: var(--space-sm);">
+              56-character key starting with 'S'
+            </p>
+            <input type="password" class="form-input mono mb-sm" id="input-custom-secret"
+              placeholder="S..." value="${secretKeyInput}" autocomplete="off">
+            <button class="btn btn-outline w-full" id="btn-submit-custom-secret" ${isLoading ? 'disabled' : ''}>
+              ${isLoading && connectingWalletId === 'secretKey' ? '<span class="spinner"></span> Verifying Key...' : 'Authorize & Connect Key'}
             </button>
           </div>
         `}
+      </div>
 
-        <div class="mt-md" style="font-size: 0.75rem; color: var(--text-muted);">
-          🌐 Network: <strong>Stellar Testnet</strong><br>
-          📜 Stream Contract: <span class="mono">${truncateAddress(CONTRACTS.STREAM)}</span>
-        </div>
+      <div class="mt-md text-center" style="font-size: 0.75rem; color: var(--text-muted);">
+        🌐 Network: <strong>Stellar Testnet</strong> • 📜 Soroban Stream: <span class="mono">${truncateAddress(CONTRACTS.STREAM)}</span>
       </div>
     `;
   }
 
+  function renderWalletCards() {
+    let filtered = SUPPORTED_WALLETS;
+    if (activeTab === 'mobile') {
+      filtered = SUPPORTED_WALLETS.filter(w => w.id === 'albedo' || w.id === 'instant' || w.id === 'freighter');
+    } else if (activeTab === 'extension') {
+      filtered = SUPPORTED_WALLETS.filter(w => w.id === 'freighter' || w.id === 'xbull' || w.id === 'rabet' || w.id === 'hana');
+    } else if (activeTab === 'quick') {
+      filtered = SUPPORTED_WALLETS.filter(w => w.id === 'instant' || w.id === 'secretKey');
+    }
+
+    return filtered.map((w) => {
+      const isAvailable = walletStatusMap[w.id];
+      const isConnectingThis = isLoading && connectingWalletId === w.id;
+
+      return `
+        <div class="wallet-option-card flex flex-between align-center" data-wallet-id="${w.id}">
+          <div class="flex align-center gap-md" style="flex: 1; min-width: 0;">
+            <div class="wallet-icon-box">${w.icon}</div>
+            <div style="text-align: left; min-width: 0;">
+              <div class="flex align-center gap-xs" style="flex-wrap: wrap;">
+                <span class="font-semibold wallet-name">${w.name}</span>
+                <span class="badge ${w.id === 'albedo' || w.id === 'instant' ? 'badge-active' : 'badge-neutral'}" style="font-size: 0.65rem;">
+                  ${w.badge}
+                </span>
+              </div>
+              <p class="wallet-desc text-muted">${w.desc}</p>
+            </div>
+          </div>
+
+          <div class="flex align-center gap-xs wallet-action-area">
+            ${w.installUrl && !isAvailable && w.id !== 'albedo' ? `
+              <a href="${w.installUrl}" target="_blank" class="btn btn-ghost btn-sm wallet-install-link" style="font-size: 0.75rem;">
+                Install ↗
+              </a>
+            ` : ''}
+            <button class="btn ${w.id === 'instant' || w.id === 'albedo' ? 'btn-primary' : 'btn-outline'} btn-sm btn-connect-wallet"
+              data-id="${w.id}" ${isLoading ? 'disabled' : ''}>
+              ${isConnectingThis ? '<span class="spinner"></span>' : 'Connect'}
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
   function renderStep2() {
+    const secret = getActiveSecretKey();
+    const isInstant = walletType === 'instant';
+
     return `
-      <div class="icon-large">⚡</div>
-      <h2 style="margin-bottom: var(--space-xs);">Wallet Connected</h2>
-      <p class="text-muted mb-md" style="font-size: 0.85rem;">Connected to Stellar Testnet</p>
-
-      <div class="wallet-status mb-md" style="text-align: left; word-break: break-all;">
-        <div>
-          <span class="text-muted" style="font-size: 0.75rem; display: block;">Public Address</span>
-          <span class="mono font-semibold" style="color: var(--accent-emerald); font-size: 0.85rem;">${walletAddress}</span>
+      <div class="text-center mb-md">
+        <div class="icon-large mb-xs">⚡</div>
+        <h2>Wallet Connected</h2>
+        <div class="flex flex-center gap-xs mt-xs">
+          <span class="badge badge-active">Stellar Testnet</span>
+          <span class="badge badge-neutral">${walletType.toUpperCase()}</span>
         </div>
       </div>
 
-      <div class="card-flat mb-lg" style="padding: var(--space-md);">
-        <div class="flex flex-between">
-          <span class="text-muted" style="font-size: 0.85rem;">Testnet Balance</span>
-          <span class="mono font-bold" id="account-bal-display" style="color: var(--accent-cyan); font-size: 1.1rem;">
-            ${balance.toFixed(2)} XLM
+      <!-- Public Key Box -->
+      <div class="card-flat mb-md" style="padding: var(--space-md); text-align: left;">
+        <div class="flex flex-between align-center mb-xs">
+          <span class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">
+            Stellar Public Address
           </span>
+          <button class="btn btn-ghost btn-sm" id="btn-copy-address" style="font-size: 0.75rem; padding: 2px 8px;">
+            ${copiedText === 'address' ? '✓ Copied' : '📋 Copy'}
+          </button>
+        </div>
+        <div class="mono font-bold" style="color: var(--accent-emerald); font-size: 0.85rem; word-break: break-all; line-height: 1.4;">
+          ${walletAddress}
         </div>
       </div>
 
+      ${isInstant && secret ? `
+        <!-- Instant Secret Key Box -->
+        <div class="card-flat mb-md" style="padding: var(--space-md); text-align: left; border-color: rgba(245, 158, 11, 0.3);">
+          <div class="flex flex-between align-center mb-xs">
+            <span style="font-size: 0.75rem; color: var(--accent-amber); font-weight: 600;">
+              🔑 Auto-Generated Secret Key (Demo)
+            </span>
+            <button class="btn btn-ghost btn-sm" id="btn-copy-secret" style="font-size: 0.75rem; padding: 2px 8px;">
+              ${copiedText === 'secret' ? '✓ Copied' : '📋 Copy'}
+            </button>
+          </div>
+          <div class="mono text-muted" style="font-size: 0.75rem; word-break: break-all;">
+            ${secret}
+          </div>
+        </div>
+      ` : ''}
+
+      <!-- Balance Card -->
+      <div class="card-flat mb-lg" style="padding: var(--space-md); text-align: left;">
+        <div class="flex flex-between align-center">
+          <div>
+            <span class="text-muted" style="font-size: 0.8rem; display: block;">Available Testnet Balance</span>
+            <span class="mono font-bold" id="account-bal-display" style="color: var(--accent-cyan); font-size: 1.4rem;">
+              ${balance.toFixed(2)} XLM
+            </span>
+          </div>
+          <button class="btn btn-ghost btn-sm" id="btn-refresh-balance" title="Refresh balance">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
       <div class="flex flex-col gap-sm">
         <button class="btn btn-outline w-full" id="btn-friendbot" ${isFunding ? 'disabled' : ''}>
-          ${isFunding ? '<span class="spinner"></span> Requesting Testnet XLM...' : '💧 Request 10,000 Testnet XLM (Friendbot)'}
+          ${isFunding ? '<span class="spinner"></span> Requesting 10,000 XLM...' : '💧 Fund 10,000 Testnet XLM (Friendbot)'}
         </button>
 
-        <button class="btn btn-primary w-full" id="btn-go-roles">
-          Continue to Role Selection →
+        <button class="btn btn-primary btn-lg w-full" id="btn-go-roles">
+          Continue to Select Portal →
         </button>
 
-        <button class="btn btn-ghost btn-sm text-muted" id="btn-disconnect">
-          Disconnect Wallet
-        </button>
+        <div class="flex flex-between align-center mt-xs">
+          <button class="btn btn-ghost btn-sm text-muted" id="btn-change-wallet">
+            ← Switch Wallet
+          </button>
+          <button class="btn btn-ghost btn-sm text-danger" id="btn-disconnect">
+            Disconnect
+          </button>
+        </div>
       </div>
     `;
   }
 
   function renderStep3() {
     return `
-      <div class="icon-large">💼</div>
-      <h2 style="margin-bottom: var(--space-xs);">Select Your Portal</h2>
-      <p class="text-muted mb-lg" style="font-size: 0.9rem;">
-        Choose which dashboard you want to access with <span class="mono text-accent">${truncateAddress(walletAddress)}</span>.
-      </p>
+      <div class="text-center mb-md">
+        <div class="icon-large mb-xs">💼</div>
+        <h2>Select Your Portal</h2>
+        <p class="text-muted" style="font-size: 0.9rem;">
+          Select how you want to interact with StreamFlow using <span class="mono text-accent">${truncateAddress(walletAddress)}</span>.
+        </p>
+      </div>
 
-      <div class="role-selector">
+      <div class="role-selector mb-lg">
         <div class="role-option ${selectedRole === 'employer' ? 'selected' : ''}" data-role="employer">
           <div class="role-icon">🏢</div>
-          <h4>Employer</h4>
-          <p style="font-size: 0.8rem;" class="text-muted">Create payroll streams & manage treasury</p>
+          <h3 style="font-size: 1.1rem; margin-bottom: 4px;">Employer Portal</h3>
+          <p style="font-size: 0.8rem;" class="text-muted">
+            Create real-time Soroban payroll streams, top-up balances, manage corporate treasury.
+          </p>
+          <div class="role-tag">Manage Payroll</div>
         </div>
+
         <div class="role-option ${selectedRole === 'employee' ? 'selected' : ''}" data-role="employee">
           <div class="role-icon">👷</div>
-          <h4>Employee</h4>
-          <p style="font-size: 0.8rem;" class="text-muted">View live earnings & withdraw instantly</p>
+          <h3 style="font-size: 1.1rem; margin-bottom: 4px;">Employee Portal</h3>
+          <p style="font-size: 0.8rem;" class="text-muted">
+            Watch salary accrue second-by-second, withdraw instantly, offramp via SEP-24 anchors.
+          </p>
+          <div class="role-tag">Accrue & Withdraw</div>
         </div>
       </div>
 
-      <div class="flex flex-col gap-sm mt-lg">
+      <div class="flex flex-col gap-sm">
         <button class="btn btn-primary btn-lg w-full" id="btn-launch-dashboard" ${!selectedRole ? 'disabled' : ''}>
-          Launch Dashboard →
+          Launch Portal →
         </button>
         <button class="btn btn-ghost btn-sm text-muted" id="btn-back-step2">
           ← Back to Account Details
@@ -205,59 +348,133 @@ export function renderOnboarding(app) {
   }
 
   function attachListeners() {
-    // 1. Connect Freighter Extension
-    document.getElementById('btn-connect-freighter')?.addEventListener('click', async () => {
-      isLoading = true;
-      render();
-      try {
-        walletAddress = await connectFreighter();
-        walletType = 'freighter';
-        const bal = await getAccountBalance(walletAddress);
-        balance = bal.xlm;
-        step = 2;
-        isLoading = false;
-        showToast('Freighter wallet connected successfully!', 'success');
+    // Tab switching
+    document.querySelectorAll('.wallet-tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        activeTab = btn.dataset.tab;
         render();
-      } catch (err) {
-        isLoading = false;
-        showToast(err.message || 'Could not connect Freighter. Please make sure the extension is installed and unlocked.', 'error');
-        render();
-      }
+      });
     });
 
-    // Toggle secret key option
-    document.getElementById('btn-toggle-secret')?.addEventListener('click', () => {
-      showSecretKeyInput = true;
+    // Wallet connect triggers
+    document.querySelectorAll('.btn-connect-wallet').forEach((btn) => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const walletId = btn.dataset.id;
+        if (!walletId) return;
+
+        if (walletId === 'secretKey') {
+          showSecretInput = true;
+          render();
+          return;
+        }
+
+        isLoading = true;
+        connectingWalletId = walletId;
+        render();
+
+        try {
+          walletAddress = await connectWallet(walletId);
+          walletType = walletId;
+          const bal = await getAccountBalance(walletAddress);
+          balance = bal.xlm;
+          step = 2;
+          isLoading = false;
+          connectingWalletId = null;
+          showToast(`Connected successfully via ${walletId.toUpperCase()}!`, 'success');
+          render();
+        } catch (err) {
+          isLoading = false;
+          connectingWalletId = null;
+          showToast(err.message || `Failed to connect ${walletId}.`, 'error');
+          render();
+        }
+      });
+    });
+
+    // Secret Key Toggle
+    document.getElementById('btn-toggle-secret-input')?.addEventListener('click', () => {
+      showSecretInput = true;
       render();
     });
 
-    // Connect with secret key
-    document.getElementById('btn-submit-secret')?.addEventListener('click', async () => {
-      const input = document.getElementById('input-secret-key')?.value;
+    document.getElementById('btn-close-secret-input')?.addEventListener('click', () => {
+      showSecretInput = false;
+      render();
+    });
+
+    // Submit Secret Key
+    document.getElementById('btn-submit-custom-secret')?.addEventListener('click', async () => {
+      const input = document.getElementById('input-custom-secret')?.value;
       if (!input) {
-        showToast('Please enter a valid Stellar secret key.', 'error');
+        showToast('Please enter a valid 56-char Stellar secret key starting with S.', 'error');
         return;
       }
 
       isLoading = true;
+      connectingWalletId = 'secretKey';
       render();
+
       try {
-        walletAddress = await connectSecretKey(input);
+        walletAddress = await connectWallet('secretKey', { secretKey: input });
         walletType = 'secretKey';
         const bal = await getAccountBalance(walletAddress);
         balance = bal.xlm;
         step = 2;
         isLoading = false;
-        showToast('Connected successfully!', 'success');
+        connectingWalletId = null;
+        showToast('Secret key connected successfully!', 'success');
         render();
       } catch (err) {
         isLoading = false;
+        connectingWalletId = null;
         showToast(err.message || 'Invalid Stellar secret key.', 'error');
         render();
       }
     });
 
-    // 2. Fund with Friendbot
+    // Copy address button
+    document.getElementById('btn-copy-address')?.addEventListener('click', () => {
+      if (walletAddress) {
+        navigator.clipboard.writeText(walletAddress);
+        copiedText = 'address';
+        render();
+        setTimeout(() => {
+          copiedText = '';
+          render();
+        }, 2000);
+      }
+    });
+
+    // Copy secret button
+    document.getElementById('btn-copy-secret')?.addEventListener('click', () => {
+      const secret = getActiveSecretKey();
+      if (secret) {
+        navigator.clipboard.writeText(secret);
+        copiedText = 'secret';
+        render();
+        setTimeout(() => {
+          copiedText = '';
+          render();
+        }, 2000);
+      }
+    });
+
+    // Refresh balance
+    document.getElementById('btn-refresh-balance')?.addEventListener('click', async () => {
+      if (!walletAddress) return;
+      try {
+        const bal = await getAccountBalance(walletAddress);
+        balance = bal.xlm;
+        const balEl = document.getElementById('account-bal-display');
+        if (balEl) balEl.textContent = `${balance.toFixed(2)} XLM`;
+        showToast('Balance updated!', 'info');
+      } catch {
+        showToast('Could not fetch balance.', 'error');
+      }
+    });
+
+    // Friendbot Funding
     document.getElementById('btn-friendbot')?.addEventListener('click', async () => {
       if (!walletAddress) return;
       isFunding = true;
@@ -267,11 +484,11 @@ export function renderOnboarding(app) {
         const bal = await getAccountBalance(walletAddress);
         balance = bal.xlm;
         isFunding = false;
-        showToast('Account funded with 10,000 Testnet XLM!', 'success');
+        showToast('Account successfully funded with 10,000 Testnet XLM!', 'success');
         render();
       } catch (err) {
         isFunding = false;
-        showToast(`Friendbot response: ${err.message}`, 'info');
+        showToast(`Friendbot note: ${err.message}`, 'info');
         render();
       }
     });
@@ -282,20 +499,23 @@ export function renderOnboarding(app) {
       render();
     });
 
+    // Switch / change wallet
+    document.getElementById('btn-change-wallet')?.addEventListener('click', () => {
+      step = 1;
+      render();
+    });
+
     // Disconnect
     document.getElementById('btn-disconnect')?.addEventListener('click', () => {
-      localStorage.removeItem('streamflow_address');
-      localStorage.removeItem('streamflow_wallet_type');
-      localStorage.removeItem('streamflow_secret_key');
-      localStorage.removeItem('streamflow_role');
+      disconnectWallet();
       walletAddress = '';
       step = 1;
       showToast('Wallet disconnected', 'info');
       render();
     });
 
-    // Role options
-    document.querySelectorAll('[data-role]').forEach((el) => {
+    // Role options selection
+    document.querySelectorAll('.role-option').forEach((el) => {
       el.addEventListener('click', () => {
         selectedRole = el.dataset.role;
         localStorage.setItem('streamflow_role', selectedRole);
@@ -307,7 +527,7 @@ export function renderOnboarding(app) {
     // Launch Dashboard
     document.getElementById('btn-launch-dashboard')?.addEventListener('click', () => {
       if (!selectedRole) {
-        showToast('Please select a role to continue.', 'error');
+        showToast('Please select either Employer or Employee portal.', 'error');
         return;
       }
       localStorage.setItem('streamflow_role', selectedRole);
@@ -331,5 +551,5 @@ function showToast(msg, type) {
   toast.className = `toast toast-${type}`;
   toast.textContent = msg;
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 4000);
+  setTimeout(() => toast.remove(), 4500);
 }
