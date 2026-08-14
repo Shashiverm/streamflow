@@ -1,112 +1,209 @@
 /**
- * StreamFlow — Stellar SDK Integration
- * Wallet connection, transaction building, and Friendbot funding.
+ * StreamFlow — Stellar SDK & Extension Wallet Integration
+ * Connects to Freighter, xBull, Albedo, and handles real Stellar Testnet transactions.
  */
 
 import * as StellarSdk from '@stellar/stellar-sdk';
+import {
+  isConnected as freighterIsConnected,
+  requestAccess as freighterRequestAccess,
+  getAddress as freighterGetAddress,
+  signTransaction as freighterSignTx,
+  getNetworkDetails as freighterGetNetworkDetails,
+} from '@stellar/freighter-api';
 import { trackEvent, trackError } from './analytics.js';
 
-const NETWORK = 'TESTNET';
-const HORIZON_URL = 'https://horizon-testnet.stellar.org';
-const SOROBAN_URL = 'https://soroban-testnet.stellar.org';
-const FRIENDBOT_URL = 'https://friendbot.stellar.org';
-const NETWORK_PASSPHRASE = StellarSdk.Networks.TESTNET;
+export const NETWORK = 'TESTNET';
+export const HORIZON_URL = 'https://horizon-testnet.stellar.org';
+export const SOROBAN_URL = 'https://soroban-testnet.stellar.org';
+export const FRIENDBOT_URL = 'https://friendbot.stellar.org';
+export const NETWORK_PASSPHRASE = StellarSdk.Networks.TESTNET;
+
+// Real deployed Soroban contract addresses on Stellar Testnet
+export const CONTRACTS = {
+  STREAM: 'CC2IDVRGMXE7QF62STVGFSQM6HGMSJTIVIKYS3F4ZN5AP57HNZZYRY4A',
+  TREASURY: 'CBSHIY4RLI3UQARQH4I46OEVZ3M7HFJOYB6DF2MDY4EUBXXYPNG55VD7',
+};
 
 let connectedAddress = null;
-let server = null;
-let sorobanServer = null;
+let connectedWalletType = null; // 'freighter' | 'secretKey'
+let activeSecretKey = null;
+let horizonServerInstance = null;
+let sorobanServerInstance = null;
 
 export function getHorizonServer() {
-  if (!server) {
-    server = new StellarSdk.Horizon.Server(HORIZON_URL);
+  if (!horizonServerInstance) {
+    horizonServerInstance = new StellarSdk.Horizon.Server(HORIZON_URL);
   }
-  return server;
+  return horizonServerInstance;
 }
 
 export function getSorobanServer() {
-  if (!sorobanServer) {
-    sorobanServer = new StellarSdk.SorobanRpc.Server(SOROBAN_URL);
+  if (!sorobanServerInstance) {
+    sorobanServerInstance = new StellarSdk.SorobanRpc.Server(SOROBAN_URL);
   }
-  return sorobanServer;
-}
-
-export function getNetworkPassphrase() {
-  return NETWORK_PASSPHRASE;
+  return sorobanServerInstance;
 }
 
 /**
- * Check if Freighter wallet is installed.
+ * Check if Freighter extension is installed and available.
  */
-export function isFreighterInstalled() {
-  return typeof window !== 'undefined' && window.freighterApi;
-}
-
-/**
- * Connect to Freighter wallet.
- */
-export async function connectWallet() {
-  if (!isFreighterInstalled()) {
-    throw new Error('Freighter wallet is not installed. Please install it from freighter.app');
-  }
-
+export async function isFreighterAvailable() {
   try {
-    const addressObj = await window.freighterApi.getAddress();
-    if (addressObj && addressObj.address) {
-      connectedAddress = addressObj.address;
-      window.__streamflow_wallet = connectedAddress;
-      trackEvent('wallet', 'connected', connectedAddress);
-      return connectedAddress;
+    if (typeof window !== 'undefined' && window.freighterApi) {
+      return true;
+    }
+    const connected = await freighterIsConnected();
+    return !!connected;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Connect to Freighter Desktop Extension.
+ */
+export async function connectFreighter() {
+  try {
+    // 1. Request access from the extension
+    let accessGranted = false;
+    try {
+      if (typeof window !== 'undefined' && window.freighterApi && window.freighterApi.setAllowed) {
+        await window.freighterApi.setAllowed();
+        accessGranted = true;
+      }
+    } catch {
+      // Fall through to freighterRequestAccess
     }
 
-    // Try requesting access
-    await window.freighterApi.setAllowed();
-    const addr = await window.freighterApi.getAddress();
-    connectedAddress = addr.address;
+    if (!accessGranted) {
+      const accessObj = await freighterRequestAccess();
+      if (accessObj && accessObj.error) {
+        throw new Error(`Freighter access error: ${accessObj.error}`);
+      }
+    }
+
+    // 2. Fetch the connected public address
+    let address = null;
+    if (typeof window !== 'undefined' && window.freighterApi && window.freighterApi.getAddress) {
+      const addrObj = await window.freighterApi.getAddress();
+      address = addrObj?.address || addrObj;
+    }
+
+    if (!address) {
+      const addrObj = await freighterGetAddress();
+      if (addrObj && addrObj.error) {
+        throw new Error(addrObj.error);
+      }
+      address = addrObj?.address || addrObj;
+    }
+
+    if (!address || typeof address !== 'string' || !address.startsWith('G')) {
+      throw new Error('Could not retrieve a valid Stellar public key from Freighter. Please unlock your wallet.');
+    }
+
+    connectedAddress = address;
+    connectedWalletType = 'freighter';
+    activeSecretKey = null;
+
+    localStorage.setItem('streamflow_address', connectedAddress);
+    localStorage.setItem('streamflow_wallet_type', 'freighter');
     window.__streamflow_wallet = connectedAddress;
-    trackEvent('wallet', 'connected', connectedAddress);
+
+    trackEvent('wallet', 'connected_freighter', connectedAddress);
     return connectedAddress;
   } catch (err) {
-    trackError(err, 'wallet-connect');
-    throw new Error('Failed to connect wallet: ' + err.message);
+    trackError(err, 'freighter-connect');
+    throw new Error(err.message || 'Failed to connect Freighter wallet.');
   }
 }
 
 /**
- * Get the currently connected wallet address.
+ * Connect with a real Stellar Testnet Secret Key (e.g. for testing without extensions).
  */
+export async function connectSecretKey(secretKey) {
+  try {
+    secretKey = secretKey.trim();
+    if (!secretKey.startsWith('S') || secretKey.length !== 56) {
+      throw new Error('Invalid Stellar Secret Key format. It should start with "S" and be 56 characters long.');
+    }
+
+    const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+    const pubKey = keypair.publicKey();
+
+    connectedAddress = pubKey;
+    connectedWalletType = 'secretKey';
+    activeSecretKey = secretKey;
+
+    localStorage.setItem('streamflow_address', connectedAddress);
+    localStorage.setItem('streamflow_wallet_type', 'secretKey');
+    localStorage.setItem('streamflow_secret_key', secretKey);
+    window.__streamflow_wallet = connectedAddress;
+
+    trackEvent('wallet', 'connected_secret_key', connectedAddress);
+    return connectedAddress;
+  } catch (err) {
+    trackError(err, 'secret-key-connect');
+    throw new Error(err.message || 'Invalid Secret Key.');
+  }
+}
+
+/**
+ * Restore connection from localStorage on page load.
+ */
+export function restoreWalletSession() {
+  const savedAddress = localStorage.getItem('streamflow_address');
+  const savedType = localStorage.getItem('streamflow_wallet_type');
+  const savedSecret = localStorage.getItem('streamflow_secret_key');
+
+  if (savedAddress) {
+    connectedAddress = savedAddress;
+    connectedWalletType = savedType || 'freighter';
+    window.__streamflow_wallet = savedAddress;
+    if (savedType === 'secretKey' && savedSecret) {
+      activeSecretKey = savedSecret;
+    }
+    return connectedAddress;
+  }
+  return null;
+}
+
+/**
+ * Disconnect current wallet.
+ */
+export function disconnectWallet() {
+  connectedAddress = null;
+  connectedWalletType = null;
+  activeSecretKey = null;
+  localStorage.removeItem('streamflow_address');
+  localStorage.removeItem('streamflow_wallet_type');
+  localStorage.removeItem('streamflow_secret_key');
+  localStorage.removeItem('streamflow_role');
+  window.__streamflow_wallet = null;
+  trackEvent('wallet', 'disconnected');
+}
+
 export function getConnectedAddress() {
+  if (!connectedAddress) {
+    restoreWalletSession();
+  }
   return connectedAddress;
 }
 
-/**
- * Set connected address (for demo/testing mode).
- */
-export function setDemoAddress(addr) {
-  connectedAddress = addr;
-  window.__streamflow_wallet = addr;
+export function getConnectedWalletType() {
+  return connectedWalletType;
 }
 
 /**
- * Generate a random Stellar keypair for demo purposes.
- */
-export function generateKeypair() {
-  const pair = StellarSdk.Keypair.random();
-  return {
-    publicKey: pair.publicKey(),
-    secretKey: pair.secret(),
-  };
-}
-
-/**
- * Fund an account using Friendbot (testnet only).
+ * Fund an account using Stellar Testnet Friendbot.
  */
 export async function fundWithFriendbot(address) {
   try {
-    const response = await fetch(`${FRIENDBOT_URL}?addr=${address}`);
+    const response = await fetch(`${FRIENDBOT_URL}?addr=${encodeURIComponent(address)}`);
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-      const text = await response.text();
-      // Already funded is OK
-      if (text.includes('createAccountAlreadyExist')) {
+      const text = JSON.stringify(data) || '';
+      if (text.includes('createAccountAlreadyExist') || text.includes('op_already_exists')) {
         return { success: true, alreadyFunded: true };
       }
       throw new Error(`Friendbot error: ${text}`);
@@ -114,7 +211,7 @@ export async function fundWithFriendbot(address) {
     trackEvent('wallet', 'funded', address);
     return { success: true, alreadyFunded: false };
   } catch (err) {
-    if (err.message?.includes('createAccountAlreadyExist')) {
+    if (err.message && (err.message.includes('createAccountAlreadyExist') || err.message.includes('op_already_exists'))) {
       return { success: true, alreadyFunded: true };
     }
     trackError(err, 'friendbot');
@@ -123,48 +220,58 @@ export async function fundWithFriendbot(address) {
 }
 
 /**
- * Get account balance.
+ * Get account balances from Horizon.
  */
 export async function getAccountBalance(address) {
   try {
     const horizonServer = getHorizonServer();
     const account = await horizonServer.loadAccount(address);
-    const xlmBalance = account.balances.find(b => b.asset_type === 'native');
+    const xlmBalance = account.balances.find((b) => b.asset_type === 'native');
     return {
       xlm: xlmBalance ? parseFloat(xlmBalance.balance) : 0,
       balances: account.balances,
+      sequence: account.sequence,
     };
   } catch (err) {
-    if (err.response?.status === 404) {
-      return { xlm: 0, balances: [] };
+    if (err.response?.status === 404 || err.name === 'NotFoundError') {
+      return { xlm: 0, balances: [], notFound: true };
     }
     throw err;
   }
 }
 
 /**
- * Sign a transaction using Freighter or a secret key.
+ * Sign a transaction XDR with the currently connected wallet (Freighter or Secret Key).
  */
-export async function signTransaction(txXDR, secretKey = null) {
-  if (secretKey) {
+export async function signTransactionXDR(txXDR) {
+  if (connectedWalletType === 'secretKey' && activeSecretKey) {
     const tx = StellarSdk.TransactionBuilder.fromXDR(txXDR, NETWORK_PASSPHRASE);
-    const keypair = StellarSdk.Keypair.fromSecret(secretKey);
+    const keypair = StellarSdk.Keypair.fromSecret(activeSecretKey);
     tx.sign(keypair);
     return tx.toXDR();
   }
 
-  if (isFreighterInstalled()) {
-    const result = await window.freighterApi.signTransaction(txXDR, {
+  // Use Freighter Extension
+  try {
+    if (typeof window !== 'undefined' && window.freighterApi && window.freighterApi.signTransaction) {
+      const result = await window.freighterApi.signTransaction(txXDR, {
+        networkPassphrase: NETWORK_PASSPHRASE,
+      });
+      return typeof result === 'string' ? result : (result?.signedTxXdr || result?.signedTxXDR || txXDR);
+    }
+
+    const result = await freighterSignTx(txXDR, {
       networkPassphrase: NETWORK_PASSPHRASE,
     });
-    return result.signedTxXdr;
+    return typeof result === 'string' ? result : (result?.signedTxXdr || result?.signedTxXDR || txXDR);
+  } catch (err) {
+    trackError(err, 'wallet-sign-tx');
+    throw new Error(`Wallet signing rejected: ${err.message}`);
   }
-
-  throw new Error('No signing method available');
 }
 
 /**
- * Submit a transaction to the network.
+ * Submit signed transaction XDR to Stellar Horizon.
  */
 export async function submitTransaction(txXDR) {
   const horizonServer = getHorizonServer();
@@ -174,7 +281,7 @@ export async function submitTransaction(txXDR) {
 }
 
 /**
- * Truncate an address for display.
+ * Truncate an address for clean UI display.
  */
 export function truncateAddress(address) {
   if (!address) return '';
@@ -182,15 +289,7 @@ export function truncateAddress(address) {
 }
 
 /**
- * Format token amount (assuming 7 decimal precision for Stellar).
- */
-export function formatAmount(stroops, decimals = 7) {
-  if (typeof stroops === 'string') stroops = parseInt(stroops);
-  return (stroops / Math.pow(10, decimals)).toFixed(2);
-}
-
-/**
- * Format a rate per second into a human-readable form.
+ * Format rate per second for display.
  */
 export function formatRate(ratePerSecond) {
   const perHour = ratePerSecond * 3600;
