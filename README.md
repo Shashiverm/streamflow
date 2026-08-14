@@ -170,6 +170,33 @@ node generate-interactions.js
 
 ---
 
+## 🧾 Proof of 10+ Testnet Wallet Interactions
+
+All transactions are verified on Stellar Testnet and viewable on Stellar Expert:
+
+| # | Action | From Account | To Account | Amount | Transaction Hash | Ledger |
+|---|--------|--------------|------------|--------|------------------|--------|
+| 1 | Payroll Stream Funding | `GA6TZUMT...OGV` | `GD6FP5BP...PUU` (Emp 1) | 37.16 XLM | [`de1c2f7c499a...`](https://stellar.expert/explorer/testnet/tx/de1c2f7c499a9f42069ab314efa903776a8fbf9f23137fe6039ba793d2e0e001) | 4142444 |
+| 2 | Payroll Stream Funding | `GA6TZUMT...OGV` | `GBRADMRU...RB4` (Emp 2) | 31.89 XLM | [`efa73d92a2ec...`](https://stellar.expert/explorer/testnet/tx/efa73d92a2ecb0431a648f1ef7fa8f9245cacede1a6b32f8f5392eac91689c90) | 4142445 |
+| 3 | Payroll Stream Funding | `GA6TZUMT...OGV` | `GAKS4FV7...TO3` (Emp 3) | 15.86 XLM | [`5c7ea4ae8d19...`](https://stellar.expert/explorer/testnet/tx/5c7ea4ae8d196ce3804231f7a613aa1004eaa3b9bfeb095f31d6beec41b06c9d) | 4142446 |
+| 4 | Payroll Stream Funding | `GA6TZUMT...OGV` | `GCBOCXMH...EWD` (Emp 4) | 36.29 XLM | [`2ff32ba7811a...`](https://stellar.expert/explorer/testnet/tx/2ff32ba7811a96b7d7b5fc4f4d4de8aa2ba79c32a408f376513910c366702b9c) | 4142447 |
+| 5 | Payroll Stream Funding | `GA6TZUMT...OGV` | `GDJ3OUK4...WN6` (Emp 5) | 37.45 XLM | [`826e119da873...`](https://stellar.expert/explorer/testnet/tx/826e119da8732dda1adad063dc490b92c70ae66eca29c46977ae456bb43a1020) | 4142448 |
+| 6 | Wage Withdrawal | `GD6FP5BP...PUU` (Emp 1) | `GA6TZUMT...OGV` | 1.78 XLM | [`ebb1912d4c9f...`](https://stellar.expert/explorer/testnet/tx/ebb1912d4c9f7d67d30783e99ff2f89b8833f6aafeab57a78752e8938a20203f) | 4142449 |
+| 7 | Wage Withdrawal | `GBRADMRU...RB4` (Emp 2) | `GA6TZUMT...OGV` | 3.10 XLM | [`ba983c255780...`](https://stellar.expert/explorer/testnet/tx/ba983c255780d6e4aa2bf3cba5e74d6bd4c855c97866d450666b54f06a92123d) | 4142450 |
+| 8 | Wage Withdrawal | `GAKS4FV7...TO3` (Emp 3) | `GA6TZUMT...OGV` | 3.93 XLM | [`aaa293bec39a...`](https://stellar.expert/explorer/testnet/tx/aaa293bec39a5a1b4b88980f8bf4304fc17558acf2641d7c91de852378e2bcdc) | 4142451 |
+| 9 | P2P Transfer | `GD6FP5BP...PUU` (Emp 1) | `GBRADMRU...RB4` (Emp 2) | 1.50 XLM | [`01c5f4be0769...`](https://stellar.expert/explorer/testnet/tx/01c5f4be076914ad10e3e915723e155bae479b31914eb2b9428038a145d58507) | 4142452 |
+| 10 | P2P Transfer | `GBRADMRU...RB4` (Emp 2) | `GAKS4FV7...TO3` (Emp 3) | 1.94 XLM | [`fa4e5700e00b...`](https://stellar.expert/explorer/testnet/tx/fa4e5700e00b2676481710431ff9ae687724af74574c0dab6435868a79b9e1aa) | 4142453 |
+
+### Explorer Account Links
+- [Employer Account (`GA6TZUMT...`)](https://stellar.expert/explorer/testnet/account/GA6TZUMT3I4L4YCDUSA5HZG2GU6WF4ZSL3RZK5ENDT3CPK7NLDQENOGV)
+- [Employee 1 Account (`GD6FP5BP...`)](https://stellar.expert/explorer/testnet/account/GD6FP5BPNPVNPB6TTFFG6XLWII4KBCXWZ2MATS7SPWPU6VS5J7DUXPUU)
+- [Employee 2 Account (`GBRADMRU...`)](https://stellar.expert/explorer/testnet/account/GBRADMRUCW6HVCJT3XPOWJQV77WS6VPAPECRAN3JW7YREJFNO2AHNRB4)
+- [Employee 3 Account (`GAKS4FV7...`)](https://stellar.expert/explorer/testnet/account/GAKS4FV77QMD5E6ALH3VPMLCWPVTOZQLOLDKPGGGBMOJMKAE25L4PTO3)
+- [Employee 4 Account (`GCBOCXMH...`)](https://stellar.expert/explorer/testnet/account/GCBOCXMHEGYYWV6Z5GBERE6VO7PASSIM6AE4RDAW5X76RBWAT5K2XEWD)
+- [Employee 5 Account (`GDJ3OUK4...`)](https://stellar.expert/explorer/testnet/account/GDJ3OUK4Q4GWVZ2STK4C2XOONYM3FSIQ67GYQMPPNZ2ZEA2ZXK4GLWN6)
+
+---
+
 ## 📸 Screenshots
 
 ### Landing Page
