@@ -113,9 +113,14 @@ Pooled employer funding for batch stream management.
 Deployed to **Stellar Testnet**.
 
 ```
-Stream Contract:   [deployed via scripts/deploy.sh]
-Treasury Contract: [deployed via scripts/deploy.sh]
+Stream Contract:   CC2IDVRGMXE7QF62STVGFSQM6HGMSJTIVIKYS3F4ZN5AP57HNZZYRY4A
+Treasury Contract: CBSHIY4RLI3UQARQH4I46OEVZ3M7HFJOYB6DF2MDY4EUBXXYPNG55VD7
+Network:           Stellar Testnet
 ```
+
+View on Stellar Expert:
+- [Stream Contract](https://stellar.expert/explorer/testnet/contract/CC2IDVRGMXE7QF62STVGFSQM6HGMSJTIVIKYS3F4ZN5AP57HNZZYRY4A)
+- [Treasury Contract](https://stellar.expert/explorer/testnet/contract/CBSHIY4RLI3UQARQH4I46OEVZ3M7HFJOYB6DF2MDY4EUBXXYPNG55VD7)
 
 ---
 
