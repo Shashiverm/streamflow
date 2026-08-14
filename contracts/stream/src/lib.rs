@@ -495,6 +495,8 @@ impl StreamContract {
 
 #[cfg(test)]
 mod test {
+    extern crate std;
+    use std::boxed::Box;
     use super::*;
     use soroban_sdk::{
         testutils::{Address as _, Ledger},
