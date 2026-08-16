@@ -34,6 +34,7 @@ export function renderOnboarding(app) {
   let activeTab = isMobile ? 'mobile' : 'all'; // 'all' | 'mobile' | 'extension' | 'quick'
   let secretKeyInput = '';
   let showSecretInput = false;
+  let showFreighterModal = false;
   let copiedText = '';
   let walletStatusMap = {};
 
@@ -85,9 +86,9 @@ export function renderOnboarding(app) {
       </nav>
 
       <div class="onboarding-wrapper">
-        <div class="container" style="max-width: 680px; width: 100%;">
+        <div class="container" style="max-width: 620px; width: 100%;">
           <!-- Progress Stepper -->
-          <div class="stepper mb-lg">
+          <div class="stepper mb-md">
             <div class="step-item ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}">
               <div class="step-circle">${step > 1 ? '✓' : '1'}</div>
               <div class="step-title">Connect Wallet</div>
@@ -111,6 +112,8 @@ export function renderOnboarding(app) {
           </div>
         </div>
       </div>
+
+      ${showFreighterModal ? renderFreighterMobileModal() : ''}
     `;
 
     attachListeners();
@@ -358,6 +361,86 @@ export function renderOnboarding(app) {
     `;
   }
 
+  function renderFreighterMobileModal() {
+    const currentUrl = window.location.href;
+    return `
+      <div class="modal-overlay" id="freighter-modal-overlay">
+        <div class="modal" style="max-width: 520px; text-align: left;">
+          <div class="modal-header">
+            <div class="flex align-center gap-xs">
+              <span style="font-size: 1.3rem;">🦊</span>
+              <h3 style="margin: 0; font-size: 1.1rem;">Freighter Mobile on Phone</h3>
+            </div>
+            <button class="modal-close" id="btn-close-freighter-modal">&times;</button>
+          </div>
+
+          <div class="mb-md">
+            <p style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 6px;">
+              Because Freighter is installed as an app on your phone, external mobile Chrome/Safari cannot access its wallet keys directly.
+            </p>
+            <p style="font-size: 0.8rem; color: var(--text-secondary);">
+              Choose how you would like to proceed:
+            </p>
+          </div>
+
+          <div class="flex flex-col gap-sm mb-md">
+            <!-- Option 1: Open in Freighter DApp Browser -->
+            <div class="card-flat" style="padding: var(--space-md); border: 1px solid rgba(79, 125, 249, 0.35); background: rgba(79, 125, 249, 0.08);">
+              <div class="flex flex-between align-center mb-xs">
+                <span class="badge badge-active" style="font-size: 0.68rem;">Option 1 — Native App</span>
+                <span class="text-muted" style="font-size: 0.72rem;">Freighter In-App Browser</span>
+              </div>
+              <strong style="font-size: 0.88rem; display: block; margin-bottom: 4px;">Open inside Freighter App Browser</strong>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
+                Copy this URL, open your Freighter App, tap the <strong>Browser 🌐</strong> tab, and paste the URL.
+              </p>
+              <div class="flex gap-xs">
+                <input type="text" readonly class="form-input mono" style="font-size: 0.78rem; padding: 6px 10px;" value="${currentUrl}" id="freighter-dapp-url">
+                <button class="btn btn-primary btn-sm" id="btn-copy-dapp-url" style="white-space: nowrap;">
+                  📋 Copy URL
+                </button>
+              </div>
+            </div>
+
+            <!-- Option 2: Connect via Albedo in Browser -->
+            <div class="card-flat" style="padding: var(--space-md); border: 1px solid rgba(0, 200, 150, 0.35); background: rgba(0, 200, 150, 0.06);">
+              <div class="flex flex-between align-center mb-xs">
+                <span class="badge badge-success" style="font-size: 0.68rem;">Option 2 — Instant In-Browser</span>
+                <span class="text-success" style="font-size: 0.72rem;">Recommended for Chrome</span>
+              </div>
+              <strong style="font-size: 0.88rem; display: block; margin-bottom: 4px;">Connect with Albedo (No app switch)</strong>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
+                Opens a secure popup tab right here in Chrome/Safari to connect and sign with Stellar keys.
+              </p>
+              <button class="btn btn-success btn-sm w-full btn-connect-wallet" data-id="albedo">
+                🌐 Connect via Albedo Now
+              </button>
+            </div>
+
+            <!-- Option 3: Instant 10,000 XLM Demo -->
+            <div class="card-flat" style="padding: var(--space-md); border: 1px solid rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.06);">
+              <div class="flex flex-between align-center mb-xs">
+                <span class="badge badge-warning" style="font-size: 0.68rem;">Option 3 — 1-Click Demo</span>
+                <span class="text-warning" style="font-size: 0.72rem;">Auto-Funded 10,000 XLM</span>
+              </div>
+              <strong style="font-size: 0.88rem; display: block; margin-bottom: 4px;">1-Click Instant Testnet Account</strong>
+              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
+                Generates a testnet keypair and funds it with 10,000 XLM immediately for testing.
+              </p>
+              <button class="btn btn-outline btn-sm w-full btn-connect-wallet" data-id="instant">
+                ⚡ Generate Instant 10k XLM Account
+              </button>
+            </div>
+          </div>
+
+          <button class="btn btn-ghost btn-sm w-full" id="btn-dismiss-freighter-modal">
+            ✕ Close
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   function attachListeners() {
     // Tab switching
     document.querySelectorAll('.wallet-tab-btn').forEach((btn) => {
@@ -380,6 +463,13 @@ export function renderOnboarding(app) {
           return;
         }
 
+        // On mobile, if user clicks Freighter and window.freighterApi is not injected in this browser:
+        if (walletId === 'freighter' && isMobile && (typeof window === 'undefined' || !window.freighterApi)) {
+          showFreighterModal = true;
+          render();
+          return;
+        }
+
         isLoading = true;
         connectingWalletId = walletId;
         render();
@@ -392,15 +482,47 @@ export function renderOnboarding(app) {
           step = 2;
           isLoading = false;
           connectingWalletId = null;
+          showFreighterModal = false;
           showToast(`Connected successfully via ${walletId.toUpperCase()}!`, 'success');
           render();
         } catch (err) {
           isLoading = false;
           connectingWalletId = null;
-          showToast(err.message || `Failed to connect ${walletId}.`, 'error');
-          render();
+          if (err.message && (err.message.includes('FREIGHTER_MOBILE_GUIDANCE') || err.message.includes('Freighter extension not detected'))) {
+            showFreighterModal = true;
+            render();
+          } else {
+            showToast(err.message || `Failed to connect ${walletId}.`, 'error');
+            render();
+          }
         }
       });
+    });
+
+    // Freighter modal listeners
+    document.getElementById('btn-close-freighter-modal')?.addEventListener('click', () => {
+      showFreighterModal = false;
+      render();
+    });
+
+    document.getElementById('btn-dismiss-freighter-modal')?.addEventListener('click', () => {
+      showFreighterModal = false;
+      render();
+    });
+
+    document.getElementById('freighter-modal-overlay')?.addEventListener('click', (e) => {
+      if (e.target.id === 'freighter-modal-overlay') {
+        showFreighterModal = false;
+        render();
+      }
+    });
+
+    document.getElementById('btn-copy-dapp-url')?.addEventListener('click', () => {
+      const urlInput = document.getElementById('freighter-dapp-url');
+      if (urlInput) {
+        navigator.clipboard.writeText(urlInput.value);
+        showToast('URL copied! Open Freighter App > Browser tab and paste URL.', 'success');
+      }
     });
 
     // Secret Key Toggle

@@ -53,6 +53,16 @@ export function isMobileDevice() {
 }
 
 /**
+ * Timeout wrapper to prevent hanging promises from wallet extensions.
+ */
+export function withTimeout(promise, ms, errorMsg = 'Operation timed out') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms)),
+  ]);
+}
+
+/**
  * Dynamically load Albedo Intent SDK for Universal Mobile & Desktop browser support.
  */
 let albedoLoadingPromise = null;
@@ -98,8 +108,12 @@ export async function isFreighterAvailable() {
     if (typeof window !== 'undefined' && (window.freighterApi || window.freighter)) {
       return true;
     }
+    // In standard mobile browser, Freighter extension is not injected (it runs in Freighter App DApp browser)
+    if (isMobileDevice()) {
+      return false;
+    }
     if (typeof freighterIsConnected === 'function') {
-      const connected = await freighterIsConnected();
+      const connected = await withTimeout(freighterIsConnected(), 800, 'Freighter timeout');
       return !!connected;
     }
     return false;
@@ -213,33 +227,45 @@ export async function connectFreighter() {
   try {
     let address = null;
 
-    // 1. Check window.freighterApi if injected
+    // 1. Check window.freighterApi if injected (Desktop extension or Freighter In-App Mobile Browser)
     if (typeof window !== 'undefined' && window.freighterApi) {
       try {
         if (typeof window.freighterApi.setAllowed === 'function') {
-          await window.freighterApi.setAllowed();
+          await withTimeout(window.freighterApi.setAllowed(), 1500, 'setAllowed timeout');
         }
       } catch (e) {
         console.warn('Freighter setAllowed notice:', e);
       }
 
-      if (typeof window.freighterApi.getPublicKey === 'function') {
-        const res = await window.freighterApi.getPublicKey();
-        address = typeof res === 'string' ? res : res?.publicKey || res?.address;
-      } else if (typeof window.freighterApi.requestAccess === 'function') {
-        const res = await window.freighterApi.requestAccess();
-        address = typeof res === 'string' ? res : res?.address || res?.publicKey;
-      } else if (typeof window.freighterApi.getAddress === 'function') {
-        const res = await window.freighterApi.getAddress();
-        address = typeof res === 'string' ? res : res?.address || res?.publicKey;
+      try {
+        if (typeof window.freighterApi.getPublicKey === 'function') {
+          const res = await withTimeout(window.freighterApi.getPublicKey(), 3000, 'Freighter getPublicKey timed out');
+          address = typeof res === 'string' ? res : res?.publicKey || res?.address;
+        } else if (typeof window.freighterApi.requestAccess === 'function') {
+          const res = await withTimeout(window.freighterApi.requestAccess(), 3000, 'Freighter requestAccess timed out');
+          address = typeof res === 'string' ? res : res?.address || res?.publicKey;
+        } else if (typeof window.freighterApi.getAddress === 'function') {
+          const res = await withTimeout(window.freighterApi.getAddress(), 3000, 'Freighter getAddress timed out');
+          address = typeof res === 'string' ? res : res?.address || res?.publicKey;
+        }
+      } catch (e) {
+        console.warn('Injected window.freighterApi error:', e);
       }
     }
 
-    // 2. Fallback to @stellar/freighter-api package functions
+    // 2. If in regular mobile browser (Chrome/Safari) and window.freighterApi is not present:
+    // Mobile apps cannot inject content scripts into external mobile Chrome/Safari.
+    if (!address && isMobileDevice()) {
+      throw new Error(
+        'FREIGHTER_MOBILE_GUIDANCE:Freighter App detected. To connect Freighter on mobile, open this page inside Freighter App\'s DApp Browser, or tap Albedo / Instant Demo to connect immediately in this browser.'
+      );
+    }
+
+    // 3. Fallback to @stellar/freighter-api package functions with strict timeout (Desktop)
     if (!address) {
       try {
         if (typeof freighterRequestAccess === 'function') {
-          const res = await freighterRequestAccess();
+          const res = await withTimeout(freighterRequestAccess(), 2500, 'Freighter extension not responding');
           if (res && res.error) throw new Error(res.error);
           address = typeof res === 'string' ? res : res?.address || res?.publicKey;
         }
@@ -251,7 +277,7 @@ export async function connectFreighter() {
     if (!address) {
       try {
         if (typeof freighterGetPublicKey === 'function') {
-          const res = await freighterGetPublicKey();
+          const res = await withTimeout(freighterGetPublicKey(), 2500, 'Freighter extension not responding');
           if (res && res.error) throw new Error(res.error);
           address = typeof res === 'string' ? res : res?.address || res?.publicKey;
         }
@@ -263,7 +289,7 @@ export async function connectFreighter() {
     if (!address || typeof address !== 'string' || !address.startsWith('G') || address.length !== 56) {
       if (isMobileDevice()) {
         throw new Error(
-          'Freighter extension not detected in this mobile browser. We recommend tapping "Albedo" (works directly in mobile browser) or "Instant Demo Account".'
+          'FREIGHTER_MOBILE_GUIDANCE:Freighter App detected. To connect Freighter on mobile, open this page inside Freighter App\'s DApp Browser, or tap Albedo / Instant Demo to connect immediately in this browser.'
         );
       }
       throw new Error(
@@ -283,7 +309,7 @@ export async function connectFreighter() {
     return connectedAddress;
   } catch (err) {
     trackError(err, 'freighter-connect');
-    throw new Error(err.message || 'Failed to connect Freighter wallet.');
+    throw err;
   }
 }
 
@@ -293,10 +319,16 @@ export async function connectFreighter() {
  */
 export async function connectAlbedo() {
   try {
-    const albedo = await loadAlbedoSDK();
-    const result = await albedo.publicKey({
-      require_existing: false,
-    });
+    const albedo = await withTimeout(
+      loadAlbedoSDK(),
+      7000,
+      'Failed to load Albedo SDK. Please check your internet connection or use Instant Demo Account.'
+    );
+    const result = await withTimeout(
+      albedo.publicKey({ require_existing: false }),
+      60000,
+      'Albedo authentication timed out or was closed.'
+    );
 
     if (!result || !result.pubkey) {
       throw new Error('Albedo authentication was cancelled or returned no public key.');
@@ -319,8 +351,8 @@ export async function connectAlbedo() {
     return connectedAddress;
   } catch (err) {
     trackError(err, 'albedo-connect');
-    if (err.message && err.message.includes('popup')) {
-      throw new Error('Albedo popup was blocked by your browser. Please allow popups or use Instant Demo Account.');
+    if (err.message && (err.message.includes('popup') || err.message.includes('closed'))) {
+      throw new Error('Albedo popup was closed or blocked. Please allow popups or use Instant Demo Account.');
     }
     throw new Error(err.message || 'Failed to connect Albedo wallet.');
   }
@@ -342,9 +374,9 @@ export async function connectXBull() {
     let address = null;
 
     if (typeof xbull.getPublicKey === 'function') {
-      address = await xbull.getPublicKey();
+      address = await withTimeout(xbull.getPublicKey(), 5000, 'xBull timed out');
     } else if (typeof xbull.connect === 'function') {
-      const res = await xbull.connect();
+      const res = await withTimeout(xbull.connect(), 5000, 'xBull timed out');
       address = typeof res === 'string' ? res : res?.publicKey;
     }
 
