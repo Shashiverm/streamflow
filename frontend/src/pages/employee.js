@@ -90,12 +90,15 @@ export function renderEmployee(app) {
 
     app.innerHTML = `
       <nav class="navbar">
-        <div class="container">
+        <div class="container navbar-container">
           <a href="/" data-link class="navbar-brand">
             <img src="/logo.svg" alt="StreamFlow" width="28" height="28">
             <span>Stream<span class="gradient-text">Flow</span></span>
           </a>
-          <ul class="navbar-nav">
+          <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+          </button>
+          <ul class="navbar-nav" id="navbar-nav">
             <li><a href="/employer" data-link>Employer</a></li>
             <li><a href="/employee" data-link class="active">Employee</a></li>
             <li>
@@ -118,15 +121,15 @@ export function renderEmployee(app) {
         <div class="container">
           <div class="dashboard-header flex flex-between" style="flex-wrap: wrap; gap: var(--space-md);">
             <div>
-              <div class="flex gap-sm" style="align-items: center;">
+              <div class="flex gap-sm align-center" style="flex-wrap: wrap;">
                 <h1>Employee Portal</h1>
                 <span class="badge badge-active">Live Accrual</span>
               </div>
-              <p class="text-muted" style="margin-top: 4px;">
+              <p class="text-muted" style="margin-top: 4px; word-break: break-all;">
                 Wallet: <span class="mono text-accent">${address}</span>
               </p>
             </div>
-            <div class="flex gap-sm" style="flex-wrap: wrap;">
+            <div class="flex gap-sm dashboard-actions" style="flex-wrap: wrap;">
               <button class="btn btn-outline btn-sm" id="btn-share-qr" title="Show QR Code for employer to fund you">
                 📱 Share Address
               </button>
@@ -460,6 +463,14 @@ export function renderEmployee(app) {
   }
 
   function attachListeners() {
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+    const navbarNav = document.getElementById('navbar-nav');
+    menuToggle?.addEventListener('click', () => {
+      navbarNav?.classList.toggle('open');
+      menuToggle.classList.toggle('active');
+    });
+
     // Logout
     document.getElementById('nav-btn-disconnect')?.addEventListener('click', () => {
       disconnectWallet();

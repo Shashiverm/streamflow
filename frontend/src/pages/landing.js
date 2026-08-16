@@ -12,12 +12,15 @@ export function renderLanding(app) {
 
   app.innerHTML = `
     <nav class="navbar">
-      <div class="container">
+      <div class="container navbar-container">
         <a href="/" data-link class="navbar-brand">
-          <img src="/logo.svg" alt="StreamFlow">
+          <img src="/logo.svg" alt="StreamFlow" width="28" height="28">
           <span>Stream<span class="gradient-text">Flow</span></span>
         </a>
-        <ul class="navbar-nav">
+        <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation">
+          <span></span><span></span><span></span>
+        </button>
+        <ul class="navbar-nav" id="navbar-nav">
           <li><a href="#features">Features</a></li>
           <li><a href="#how-it-works">How It Works</a></li>
           <li><a href="/onboarding" data-link class="btn btn-primary btn-sm">Launch App</a></li>
@@ -258,6 +261,21 @@ export function renderLanding(app) {
       simLiveCounter.textContent = `$${sessionAccrued.toFixed(6)}`;
     }
   }, 100);
+
+  // Mobile menu toggle
+  const menuToggle = document.getElementById('mobile-menu-toggle');
+  const navbarNav = document.getElementById('navbar-nav');
+  menuToggle?.addEventListener('click', () => {
+    navbarNav?.classList.toggle('open');
+    menuToggle.classList.toggle('active');
+  });
+
+  navbarNav?.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', () => {
+      navbarNav?.classList.remove('open');
+      menuToggle?.classList.remove('active');
+    });
+  });
 
   // Return cleanup function
   return () => {

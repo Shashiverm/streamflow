@@ -4,11 +4,33 @@
 
 const FEEDBACK_KEY = 'streamflow_feedback';
 
+const SEED_FEEDBACK = [
+  {
+    name: 'Souvik Mandal',
+    userAddress: 'GDKHLI3JCIRIKHOY5UJIVNEYGQOZXQSPE4SRWMKG7B77VAQE7SSYQMU6',
+    rating: 4,
+    comment: "Streaming payment is good idea. Only one transection one txn fees. Good work but one thing work more on UI it's not responsive more mobile web version.",
+    timestamp: new Date().toISOString(),
+  },
+  {
+    name: 'Anubhab Rakshit',
+    userAddress: 'GAXMN5XJDKC5LULYYTCMTAC7NZZWA6DL3GJQD362HJ3C2KADPK5JQD4C',
+    rating: 5,
+    comment: 'I liked the idea and transactions were smooth',
+    timestamp: new Date().toISOString(),
+  },
+];
+
 function getFeedbackStore() {
   try {
-    return JSON.parse(localStorage.getItem(FEEDBACK_KEY) || '[]');
+    const raw = localStorage.getItem(FEEDBACK_KEY);
+    if (!raw) {
+      localStorage.setItem(FEEDBACK_KEY, JSON.stringify(SEED_FEEDBACK));
+      return SEED_FEEDBACK;
+    }
+    return JSON.parse(raw) || SEED_FEEDBACK;
   } catch {
-    return [];
+    return SEED_FEEDBACK;
   }
 }
 

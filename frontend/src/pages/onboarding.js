@@ -14,6 +14,7 @@ import {
   getActiveSecretKey,
   getConnectedWalletType,
   disconnectWallet,
+  isMobileDevice,
 } from '../stellar.js';
 import { trackPageView, trackEvent } from '../analytics.js';
 import { navigate } from '../router.js';
@@ -21,6 +22,7 @@ import { navigate } from '../router.js';
 export function renderOnboarding(app) {
   trackPageView('/onboarding');
 
+  const isMobile = isMobileDevice();
   let step = 1; // 1: connect wallet, 2: account status / fund, 3: select role
   let walletAddress = localStorage.getItem('streamflow_address') || '';
   let walletType = localStorage.getItem('streamflow_wallet_type') || 'freighter';
@@ -29,7 +31,7 @@ export function renderOnboarding(app) {
   let isFunding = false;
   let selectedRole = localStorage.getItem('streamflow_role') || '';
   let balance = 0;
-  let activeTab = 'all'; // 'all' | 'mobile' | 'extension' | 'quick'
+  let activeTab = isMobile ? 'mobile' : 'all'; // 'all' | 'mobile' | 'extension' | 'quick'
   let secretKeyInput = '';
   let showSecretInput = false;
   let copiedText = '';
@@ -115,8 +117,6 @@ export function renderOnboarding(app) {
   }
 
   function renderStep1() {
-    const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
     return `
       <div class="text-center mb-md">
         <div class="icon-large mb-xs">🔐</div>
@@ -126,19 +126,30 @@ export function renderOnboarding(app) {
         </p>
       </div>
 
-      ${isMobileDevice ? `
+      ${isMobile ? `
         <div class="mobile-wallet-tip mb-md">
-          <span style="font-size: 1.1rem;">📱</span>
-          <div style="font-size: 0.85rem; text-align: left;">
-            <strong>Mobile User Detected:</strong> We recommend <strong>Albedo</strong> (opens in-browser, no download needed) or <strong>Instant Demo Account</strong> for instant 10,000 XLM testing.
+          <div class="flex align-center gap-xs mb-xs">
+            <span style="font-size: 1.2rem;">📱</span>
+            <strong style="font-size: 0.9rem; color: var(--accent-cyan);">Mobile Quick Connect</strong>
+          </div>
+          <p style="font-size: 0.8rem; margin-bottom: var(--space-sm); color: var(--text-secondary);">
+            For the smoothest experience on mobile web, connect instantly with <strong>Albedo</strong> (in-browser) or generate an <strong>Instant 10,000 XLM Demo Account</strong>.
+          </p>
+          <div class="grid-2 gap-xs">
+            <button class="btn btn-primary btn-sm btn-connect-wallet" data-id="albedo" ${isLoading ? 'disabled' : ''}>
+              ${isLoading && connectingWalletId === 'albedo' ? '<span class="spinner"></span>' : '🌐 Connect Albedo'}
+            </button>
+            <button class="btn btn-outline btn-sm btn-connect-wallet" data-id="instant" ${isLoading ? 'disabled' : ''}>
+              ${isLoading && connectingWalletId === 'instant' ? '<span class="spinner"></span>' : '⚡ Instant 10k XLM'}
+            </button>
           </div>
         </div>
       ` : ''}
 
       <!-- Filter Tabs -->
       <div class="wallet-tabs mb-md">
+        <button class="wallet-tab-btn ${activeTab === 'mobile' ? 'active' : ''}" data-tab="mobile">📱 Mobile & Web</button>
         <button class="wallet-tab-btn ${activeTab === 'all' ? 'active' : ''}" data-tab="all">All Wallets</button>
-        <button class="wallet-tab-btn ${activeTab === 'mobile' ? 'active' : ''}" data-tab="mobile">Mobile & Web</button>
         <button class="wallet-tab-btn ${activeTab === 'extension' ? 'active' : ''}" data-tab="extension">Extensions</button>
         <button class="wallet-tab-btn ${activeTab === 'quick' ? 'active' : ''}" data-tab="quick">⚡ Instant Demo</button>
       </div>

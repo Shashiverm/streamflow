@@ -89,12 +89,15 @@ export function renderEmployer(app) {
 
     app.innerHTML = `
       <nav class="navbar">
-        <div class="container">
+        <div class="container navbar-container">
           <a href="/" data-link class="navbar-brand">
             <img src="/logo.svg" alt="StreamFlow" width="28" height="28">
             <span>Stream<span class="gradient-text">Flow</span></span>
           </a>
-          <ul class="navbar-nav">
+          <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation">
+            <span></span><span></span><span></span>
+          </button>
+          <ul class="navbar-nav" id="navbar-nav">
             <li><a href="/employer" data-link class="active">Employer</a></li>
             <li><a href="/employee" data-link>Employee</a></li>
             <li>
@@ -117,15 +120,15 @@ export function renderEmployer(app) {
         <div class="container">
           <div class="dashboard-header flex flex-between" style="flex-wrap: wrap; gap: var(--space-md);">
             <div>
-              <div class="flex gap-sm" style="align-items: center;">
+              <div class="flex gap-sm align-center" style="flex-wrap: wrap;">
                 <h1>Employer Dashboard</h1>
                 <span class="badge badge-active">Testnet Protocol 22</span>
               </div>
-              <p class="text-muted" style="margin-top: 4px;">
+              <p class="text-muted" style="margin-top: 4px; word-break: break-all;">
                 Connected Wallet: <span class="mono text-accent">${address}</span>
               </p>
             </div>
-            <div class="flex gap-sm" style="flex-wrap: wrap;">
+            <div class="flex gap-sm dashboard-actions" style="flex-wrap: wrap;">
               <button class="btn btn-outline btn-sm" id="btn-open-calculator" title="Interactive Salary to Stream Rate Calculator">
                 🧮 Rate Calculator
               </button>
@@ -179,7 +182,7 @@ export function renderEmployer(app) {
             <div class="card mb-lg" style="border: 1px solid rgba(79, 125, 249, 0.25);">
               <div class="flex flex-between mb-md" style="flex-wrap: wrap; gap: var(--space-sm);">
                 <div>
-                  <div class="flex gap-sm" style="align-items: center;">
+                  <div class="flex gap-sm align-center">
                     <h3 style="font-size: 1.1rem;">💰 Pooled Employer Treasury</h3>
                     <span class="badge badge-active">Active</span>
                   </div>
@@ -219,11 +222,11 @@ export function renderEmployer(app) {
               </div>
 
               <!-- Filter & Search Bar -->
-              <div class="flex gap-sm" style="flex-wrap: wrap; align-items: center;">
-                <input type="text" id="stream-search" class="form-input" style="padding: 6px 12px; font-size: 0.85rem; width: 200px;"
-                  placeholder="Search address / ID..." value="${searchQuery}">
+              <div class="flex gap-sm filter-search-row" style="flex-wrap: wrap; align-items: center;">
+                <input type="text" id="stream-search" class="form-input" style="padding: 6px 12px; font-size: 0.85rem; width: 180px;"
+                  placeholder="Search employee / ID..." value="${searchQuery}">
                 
-                <div class="filter-group flex gap-xs">
+                <div class="filter-group flex gap-xs" style="flex-wrap: wrap;">
                   ${['All', 'Active', 'Paused', 'Completed', 'Cancelled'].map(
                     (filter) => `
                     <button class="btn btn-sm ${currentFilter === filter ? 'btn-primary' : 'btn-ghost'}" data-filter="${filter}" style="padding: 4px 10px; font-size: 0.8rem;">
@@ -246,7 +249,8 @@ export function renderEmployer(app) {
                 ` : ''}
               </div>
             ` : `
-              <div class="table-wrapper">
+              <!-- Desktop Table View -->
+              <div class="table-wrapper desktop-only-table">
                 <table class="stream-table">
                   <thead>
                     <tr>
@@ -266,6 +270,11 @@ export function renderEmployer(app) {
                   </tbody>
                 </table>
               </div>
+
+              <!-- Mobile Card View -->
+              <div class="mobile-only-cards flex flex-col gap-sm">
+                ${filteredStreams.map((s) => renderEmployerStreamCard(s)).join('')}
+              </div>
             `}
           </div>
         </div>
@@ -279,6 +288,72 @@ export function renderEmployer(app) {
 
     attachListeners();
     startAccrualUpdates();
+  }
+
+  function renderEmployerStreamCard(s) {
+    const accrued = getAccrued(s.id);
+    const progress = s.totalFunded > 0 ? ((s.withdrawn + accrued) / s.totalFunded) * 100 : 0;
+    const statusClass = {
+      Active: 'badge-active',
+      Paused: 'badge-paused',
+      Cancelled: 'badge-cancelled',
+      Completed: 'badge-completed',
+    }[s.status] || '';
+
+    return `
+      <div class="card-flat stream-mobile-card" style="padding: var(--space-md); border: 1px solid rgba(79, 125, 249, 0.15);">
+        <div class="flex flex-between align-center mb-xs">
+          <div class="flex align-center gap-xs">
+            <span class="font-bold mono">Stream #${s.id}</span>
+            <span class="badge ${statusClass}" style="font-size: 0.7rem;">${s.status}</span>
+          </div>
+          <span class="badge badge-outline" style="font-size: 0.7rem;">${s.token || 'XLM'}</span>
+        </div>
+
+        <div class="mb-sm">
+          <span class="text-muted" style="font-size: 0.75rem; display: block;">Recipient Employee</span>
+          <a href="https://stellar.expert/explorer/testnet/account/${s.employee}" target="_blank" class="mono text-accent" style="font-size: 0.85rem; word-break: break-all;">
+            ${s.employee} ↗
+          </a>
+        </div>
+
+        <div class="grid-2 gap-sm mb-sm" style="background: rgba(0, 0, 0, 0.25); padding: 8px; border-radius: var(--radius-sm);">
+          <div>
+            <span class="text-muted" style="font-size: 0.7rem; display: block;">Rate</span>
+            <span class="mono font-semibold" style="font-size: 0.85rem;">${s.ratePerSecond.toFixed(4)}/s</span>
+          </div>
+          <div>
+            <span class="text-muted" style="font-size: 0.7rem; display: block;">Live Accrued</span>
+            <span class="mono text-success font-bold" data-accrued="${s.id}" style="font-size: 0.85rem;">${accrued.toFixed(4)}</span>
+          </div>
+        </div>
+
+        <div class="mb-sm">
+          <div class="flex flex-between mb-xs" style="font-size: 0.75rem;">
+            <span class="text-muted">Paid: ${s.withdrawn.toFixed(2)} / ${s.totalFunded.toFixed(2)} XLM</span>
+            <span class="mono font-semibold">${progress.toFixed(1)}%</span>
+          </div>
+          <div class="analytics-bar" style="height: 6px;">
+            <div class="fill" style="width: ${Math.min(progress, 100)}%;"></div>
+          </div>
+        </div>
+
+        <div class="flex gap-xs mt-sm" style="flex-wrap: wrap;">
+          ${s.status === 'Active' ? `
+            <button class="btn btn-ghost btn-sm" data-action="pause" data-id="${s.id}" style="flex: 1;">⏸ Pause</button>
+            <button class="btn btn-ghost btn-sm" data-action="topup" data-id="${s.id}" style="flex: 1;">💰 Top-up</button>
+            <button class="btn btn-ghost btn-sm text-danger" data-action="cancel" data-id="${s.id}" style="flex: 1;">✕ Cancel</button>
+          ` : ''}
+          ${s.status === 'Paused' ? `
+            <button class="btn btn-ghost btn-sm" data-action="resume" data-id="${s.id}" style="flex: 1;">▶ Resume</button>
+            <button class="btn btn-ghost btn-sm text-danger" data-action="cancel" data-id="${s.id}" style="flex: 1;">✕ Cancel</button>
+          ` : ''}
+          ${s.status === 'Cancelled' || s.status === 'Completed' ? `
+            <span class="text-muted text-center w-full" style="font-size: 0.75rem; padding: 4px 0;">Settled on Soroban</span>
+          ` : ''}
+        </div>
+      </div>
+    `;
   }
 
   function renderStreamRow(s) {
@@ -502,6 +577,14 @@ export function renderEmployer(app) {
   }
 
   function attachListeners() {
+    // Mobile menu toggle
+    const menuToggle = document.getElementById('mobile-menu-toggle');
+    const navbarNav = document.getElementById('navbar-nav');
+    menuToggle?.addEventListener('click', () => {
+      navbarNav?.classList.toggle('open');
+      menuToggle.classList.toggle('active');
+    });
+
     // Logout
     document.getElementById('nav-btn-disconnect')?.addEventListener('click', () => {
       disconnectWallet();

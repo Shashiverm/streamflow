@@ -46,6 +46,12 @@ export function getSorobanServer() {
   return sorobanServerInstance;
 }
 
+export function isMobileDevice() {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (typeof window !== 'undefined' && window.innerWidth <= 768);
+}
+
 /**
  * Dynamically load Albedo Intent SDK for Universal Mobile & Desktop browser support.
  */
@@ -75,7 +81,8 @@ export async function loadAlbedoSDK() {
       }
     };
     script.onerror = () => {
-      reject(new Error('Failed to load Albedo SDK from CDN. Please check your internet connection.'));
+      albedoLoadingPromise = null;
+      reject(new Error('Failed to load Albedo SDK from CDN. Please check your internet connection or use Instant Account.'));
     };
     document.head.appendChild(script);
   });
@@ -102,7 +109,7 @@ export async function isFreighterAvailable() {
 }
 
 export function isAlbedoAvailable() {
-  // Albedo works in every browser (mobile and desktop) via web intents!
+  // Albedo works in every browser (mobile and desktop) via secure web intents!
   return typeof window !== 'undefined';
 }
 
@@ -254,6 +261,11 @@ export async function connectFreighter() {
     }
 
     if (!address || typeof address !== 'string' || !address.startsWith('G') || address.length !== 56) {
+      if (isMobileDevice()) {
+        throw new Error(
+          'Freighter extension not detected in this mobile browser. We recommend tapping "Albedo" (works directly in mobile browser) or "Instant Demo Account".'
+        );
+      }
       throw new Error(
         'Could not retrieve a valid Stellar public key from Freighter. Please ensure the Freighter extension is unlocked and permission is granted.'
       );
@@ -307,6 +319,9 @@ export async function connectAlbedo() {
     return connectedAddress;
   } catch (err) {
     trackError(err, 'albedo-connect');
+    if (err.message && err.message.includes('popup')) {
+      throw new Error('Albedo popup was blocked by your browser. Please allow popups or use Instant Demo Account.');
+    }
     throw new Error(err.message || 'Failed to connect Albedo wallet.');
   }
 }
@@ -317,6 +332,9 @@ export async function connectAlbedo() {
 export async function connectXBull() {
   try {
     if (typeof window === 'undefined' || (!window.xBullSDK && !window.xbull)) {
+      if (isMobileDevice()) {
+        throw new Error('xBull extension is not detected in mobile browser. Please use Albedo or Instant Demo Account.');
+      }
       throw new Error('xBull Wallet extension is not detected. Please install xBull or use Albedo/Instant Account.');
     }
 

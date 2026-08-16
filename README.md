@@ -36,9 +36,10 @@ StreamFlow is a real-time payroll streaming platform built on the **Stellar bloc
 - **Pooled Employer Treasury** — Fund one contract balance once and allocate across dozens of employee streams.
 - **Multi-Token Support** — Stream payroll in native **XLM**, **USDC**, or **EURC**.
 - **SEP-24 Anchor Off-Ramp** — Convert earnings into local fiat (USD, EUR, GBP, INR, NGN, BRL) instantly.
-- **Interactive Rate & Salary Calculator** — Convert monthly/hourly rates into per-second streaming rates in real-time.
+- **Mobile-First Responsive Web Design** — Fluid typography, responsive mobile drawer menu, mobile cards view for payroll streams, touch-friendly 44px+ targets, and iOS Safari auto-zoom prevention.
+- **Smooth Universal Mobile Wallet Connection** — Dedicated mobile flow with Albedo (zero-install in-browser auth on iOS/Android), Instant 1-Click 10,000 XLM Testnet Keypair generation, and Freighter/Lobstr deep-link assistance.
 - **Accounting & Tax CSV Exports** — 1-click export of detailed stream data and verified transaction audit trails.
-- **Multi-Wallet Support** — Freighter Extension, Albedo Web/Mobile, xBull, Rabet, Hana, and 1-Click testnet keypairs.
+- **Multi-Wallet Support** — Freighter Extension & Mobile, Albedo Web/Mobile, xBull, Rabet, Hana, Instant Testnet Accounts, and Secret Key import.
 - **Live Simulator on Landing Page** — Interactive wage accrual demonstration with wire-fee savings calculator.
 
 
