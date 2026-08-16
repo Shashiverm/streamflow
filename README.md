@@ -28,13 +28,19 @@ StreamFlow is a real-time payroll streaming platform built on the **Stellar bloc
 - Cross-border payments for remote workers involve delays and high fees
 - No way to access earned-but-unpaid wages before the scheduled payday
 
-### Solution
+### Solution & Key Features
 
-- **Per-second wage streaming** via Soroban smart contracts
-- **Instant withdrawals** — employees pull accrued earnings anytime
-- **Pro-rata settlement** — fair cancellation with exact payouts
-- **Global reach** — Stellar's fast, low-fee cross-border infrastructure
-- **Anchor off-ramp** — convert stablecoin earnings to local currency (SEP-24)
+- **Per-Second Wage Streaming** — Soroban smart contract computes accrual continuously using checkpoint math.
+- **Instant Withdrawals** — Employees pull accrued earnings at any moment with 25%, 50%, 75%, or Max presets.
+- **Pro-Rata Settlement** — Fair cancellation logic guarantees exact earned payouts to workers and automatic refunds to employers.
+- **Pooled Employer Treasury** — Fund one contract balance once and allocate across dozens of employee streams.
+- **Multi-Token Support** — Stream payroll in native **XLM**, **USDC**, or **EURC**.
+- **SEP-24 Anchor Off-Ramp** — Convert earnings into local fiat (USD, EUR, GBP, INR, NGN, BRL) instantly.
+- **Interactive Rate & Salary Calculator** — Convert monthly/hourly rates into per-second streaming rates in real-time.
+- **Accounting & Tax CSV Exports** — 1-click export of detailed stream data and verified transaction audit trails.
+- **Multi-Wallet Support** — Freighter Extension, Albedo Web/Mobile, xBull, Rabet, Hana, and 1-Click testnet keypairs.
+- **Live Simulator on Landing Page** — Interactive wage accrual demonstration with wire-fee savings calculator.
+
 
 ---
 
@@ -64,6 +70,10 @@ StreamFlow is a real-time payroll streaming platform built on the **Stellar bloc
 ```
 
 ---
+
+## Live Demo
+- [Vercel](https://streamflow-lilac-six.vercel.app/)
+- [YouTube](https://www.youtube.com/watch?v=kF8z1-3i3xY)
 
 ## 📜 Smart Contracts
 
@@ -260,12 +270,14 @@ All analytics data is stored in localStorage and viewable in the browser console
 
 ---
 
-## 🗳️ User Feedback
+## 🗳️ User Feedback & Onboarding
 
-Feedback is collected via an in-app widget (bottom-right corner):
-- ⭐ Star rating (1-5)
-- 💬 Written comments
-- Stored in localStorage with timestamps
+Feedback is collected via an in-app widget (bottom-right corner) and onboarding was completed for 10+ active testnet users:
+- ⭐ Star rating (1-5) with 4.8/5.0 average score across 10 reviews
+- 💬 Direct qualitative user feedback from employers and remote employees
+- 📊 Detailed report available in [docs/FEEDBACK.md](docs/FEEDBACK.md)
+- 💾 Persistent storage in localStorage with timestamps
+
 
 ---
 

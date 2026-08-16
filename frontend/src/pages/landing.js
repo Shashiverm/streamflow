@@ -148,6 +148,56 @@ export function renderLanding(app) {
       </div>
     </section>
 
+    <section class="container mb-3xl" style="position: relative; z-index: 5;">
+      <div class="card" style="padding: var(--space-2xl); background: radial-gradient(ellipse at center, rgba(79, 125, 249, 0.12) 0%, rgba(12, 16, 32, 0.8) 100%); border: 1px solid rgba(79, 125, 249, 0.3); box-shadow: var(--shadow-glow);">
+        <div class="text-center mb-xl">
+          <div class="badge badge-active mb-sm">Interactive Demo</div>
+          <h2 style="font-size: 1.8rem;">Experience <span class="gradient-text">Real-Time Streaming</span></h2>
+          <p class="text-muted" style="max-width: 600px; margin: 0 auto;">See how wages accrue every millisecond compared to waiting 30 days for a traditional wire.</p>
+        </div>
+
+        <div class="grid-2 gap-xl" style="align-items: center;">
+          <div>
+            <div class="form-group mb-md">
+              <label class="form-label">Monthly Target Salary</label>
+              <div class="flex gap-sm">
+                <input type="range" class="w-full" id="sim-salary-range" min="1000" max="15000" step="500" value="5000">
+                <span class="mono font-bold text-accent" id="sim-salary-label" style="font-size: 1.1rem; min-width: 100px; text-align: right;">$5,000</span>
+              </div>
+            </div>
+
+            <div class="card-flat" style="padding: var(--space-md); background: rgba(0, 0, 0, 0.3);">
+              <div class="flex flex-between mb-sm" style="font-size: 0.85rem;">
+                <span class="text-muted">Per-Second Accrual:</span>
+                <span class="mono font-bold text-success" id="sim-rate-sec">$0.001929 / sec</span>
+              </div>
+              <div class="flex flex-between mb-sm" style="font-size: 0.85rem;">
+                <span class="text-muted">Hourly Pace (8h day):</span>
+                <span class="mono font-semibold" id="sim-rate-hr">$31.25 / hr</span>
+              </div>
+              <div class="flex flex-between" style="font-size: 0.85rem;">
+                <span class="text-muted">Wire Transfer Delay:</span>
+                <span class="text-danger font-semibold">0 seconds (Instant on Stellar)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="text-center" style="background: rgba(6, 8, 15, 0.7); padding: var(--space-xl); border-radius: var(--radius-lg); border: 1px solid var(--border-subtle);">
+            <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em;">Your Live Accrued Earnings This Session</div>
+            <div class="mono font-bold text-success mt-sm mb-sm" id="sim-live-counter" style="font-size: 2.4rem; font-variant-numeric: tabular-nums;">
+              $0.000000
+            </div>
+            <div class="text-muted" style="font-size: 0.75rem;">
+              ⚡ Settling continuously on Soroban smart contract checkpoint math
+            </div>
+            <a href="/onboarding" data-link class="btn btn-primary btn-sm mt-md">
+              Open Testnet Wallet & Stream →
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <footer style="padding: var(--space-2xl) 0; border-top: 1px solid var(--border-subtle);">
       <div class="container text-center">
         <div class="flex flex-center gap-sm mb-md">
@@ -165,9 +215,8 @@ export function renderLanding(app) {
     </footer>
   `;
 
-  // Animated streaming counter
+  // Animated streaming counter in hero
   const counterEl = document.getElementById('streaming-counter');
-
   function animateCounter() {
     streamedAmount += Math.random() * 0.5 + 0.1;
     if (counterEl) {
@@ -178,11 +227,42 @@ export function renderLanding(app) {
     }
     animFrame = requestAnimationFrame(animateCounter);
   }
-
   animateCounter();
+
+  // Interactive Live Simulator in Landing Page
+  let simSalary = 5000;
+  let sessionAccrued = 0;
+  const simRange = document.getElementById('sim-salary-range');
+  const simLabel = document.getElementById('sim-salary-label');
+  const simRateSec = document.getElementById('sim-rate-sec');
+  const simRateHr = document.getElementById('sim-rate-hr');
+  const simLiveCounter = document.getElementById('sim-live-counter');
+
+  function updateSimCalculations() {
+    const ratePerSec = simSalary / (30 * 86400);
+    const hourlyRate = simSalary / 160;
+    if (simLabel) simLabel.textContent = `$${simSalary.toLocaleString()}`;
+    if (simRateSec) simRateSec.textContent = `$${ratePerSec.toFixed(6)} / sec`;
+    if (simRateHr) simRateHr.textContent = `$${hourlyRate.toFixed(2)} / hr`;
+  }
+
+  simRange?.addEventListener('input', (e) => {
+    simSalary = parseFloat(e.target.value) || 5000;
+    updateSimCalculations();
+  });
+
+  const simInterval = setInterval(() => {
+    const ratePerSec = simSalary / (30 * 86400);
+    sessionAccrued += (ratePerSec / 10); // 100ms interval
+    if (simLiveCounter) {
+      simLiveCounter.textContent = `$${sessionAccrued.toFixed(6)}`;
+    }
+  }, 100);
 
   // Return cleanup function
   return () => {
     if (animFrame) cancelAnimationFrame(animFrame);
+    clearInterval(simInterval);
   };
 }
+

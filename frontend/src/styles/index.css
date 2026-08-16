@@ -1666,3 +1666,43 @@ a:hover {
   background: rgba(79, 125, 249, 0.3);
   color: var(--text-primary);
 }
+
+/* Range input */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  height: 8px;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--grad-primary);
+  box-shadow: 0 0 10px rgba(0, 212, 255, 0.5);
+  cursor: pointer;
+  transition: transform var(--transition);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+/* Filter buttons */
+.filter-group .btn {
+  transition: all var(--transition);
+}
+
+.filter-group .btn-primary {
+  background: var(--grad-primary);
+  color: white;
+  border: none;
+}
+
