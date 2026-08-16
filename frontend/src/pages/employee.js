@@ -133,9 +133,6 @@ export function renderEmployee(app) {
               <button class="btn btn-outline btn-sm" id="btn-export-csv" title="Download CSV report of all wages received">
                 📥 Export Pay Stubs
               </button>
-              <a href="/employer" data-link class="btn btn-ghost btn-sm">
-                Switch to Employer View →
-              </a>
             </div>
           </div>
 
