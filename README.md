@@ -72,15 +72,18 @@ StreamFlow is a real-time payroll streaming platform built on the **Stellar bloc
 
 ---
 
-## Live Demo
-- 🌐 [Vercel Live App](https://streamflow-lilac-six.vercel.app/)
-- 🎥 [YouTube Video Walkthrough](https://youtu.be/2vNsnRZ3q4o)
+## 🌐 Live Demo & Video Walkthrough
 
-<br />
+- 🔗 **Live Web Application:** [streamflow-lilac-six.vercel.app](https://streamflow-lilac-six.vercel.app/)
+- 🎥 **YouTube Walkthrough:** [Watch Demo Video](https://youtu.be/2vNsnRZ3q4o)
 
-<iframe width="100%" height="450" src="https://www.youtube.com/embed/2vNsnRZ3q4o" title="StreamFlow Demo Walkthrough" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<p align="center">
+  <a href="https://youtu.be/2vNsnRZ3q4o" target="_blank">
+    <img src="https://img.youtube.com/vi/2vNsnRZ3q4o/maxresdefault.jpg" alt="StreamFlow Demo Walkthrough" width="100%">
+  </a>
+</p>
 
-[![StreamFlow Video Demo](https://img.youtube.com/vi/2vNsnRZ3q4o/maxresdefault.jpg)](https://www.youtube.com/watch?v=2vNsnRZ3q4o)
+---
 
 ## 📜 Smart Contracts
 
