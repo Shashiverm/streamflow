@@ -73,8 +73,14 @@ StreamFlow is a real-time payroll streaming platform built on the **Stellar bloc
 ---
 
 ## Live Demo
-- [Vercel](https://streamflow-lilac-six.vercel.app/)
-- [YouTube](https://www.youtube.com/watch?v=kF8z1-3i3xY)
+- 🌐 [Vercel Live App](https://streamflow-lilac-six.vercel.app/)
+- 🎥 [YouTube Video Walkthrough](https://youtu.be/2vNsnRZ3q4o)
+
+<br />
+
+<iframe width="100%" height="450" src="https://www.youtube.com/embed/2vNsnRZ3q4o" title="StreamFlow Demo Walkthrough" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+
+[![StreamFlow Video Demo](https://img.youtube.com/vi/2vNsnRZ3q4o/maxresdefault.jpg)](https://www.youtube.com/watch?v=2vNsnRZ3q4o)
 
 ## 📜 Smart Contracts
 
@@ -254,9 +260,15 @@ Form modal to configure recipient address, streaming rate per second, token, and
 ![Off-Ramp](imgs/off_ramp.png)
 
 ### 📱 Mobile Responsive
-Fully responsive on mobile phones, tablets, and desktops (375px, 768px, and 1024px+ breakpoints).
+Fully responsive on mobile phones, tablets, and desktops (375px, 768px, and 1024px+ breakpoints) with mobile drawer navigation and touch-optimized controls.
 
 ![Mobile Responsive](imgs/mobile_responsive.png)
+![Mobile UI & Navigation](imgs/mobile_ui_1.jpeg)
+
+### 💬 In-App Feedback
+Integrated user feedback widget collecting real-time ratings and suggestions.
+
+![User Feedback Widget](imgs/basic_feedback.jpeg)
 
 ---
 
@@ -279,6 +291,8 @@ Feedback is collected via an in-app widget (bottom-right corner) and onboarding 
 - 💬 Direct qualitative user feedback from employers and remote employees
 - 📊 Detailed report available in [docs/FEEDBACK.md](docs/FEEDBACK.md)
 - 💾 Persistent storage in localStorage with timestamps
+
+![User Feedback Modal](imgs/basic_feedback.jpeg)
 
 
 ---
