@@ -2,8 +2,8 @@
  * StreamFlow — Contract Interaction Layer
  * Interacts with the deployed Soroban Stream & Treasury contracts on Stellar Testnet.
  *
- * Stream Contract:   CC2IDVRGMXE7QF62STVGFSQM6HGMSJTIVIKYS3F4ZN5AP57HNZZYRY4A
- * Treasury Contract: CBSHIY4RLI3UQARQH4I46OEVZ3M7HFJOYB6DF2MDY4EUBXXYPNG55VD7
+ * Stream Contract:   CBFFR6AVRP5W4GETTCYU774MIWXWUO73MYYMAUPFQBB4QGWOCMZXEJAQ
+ * Treasury Contract: CBHI5NW6HYK7Z4VOYCUR3KQBDX6ATFYZIAEWGRGOWAZIP2TLT4U5HAQB
  */
 
 import { CONTRACTS, getConnectedAddress } from './stellar.js';

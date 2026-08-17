@@ -4,9 +4,6 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, contracterror, token, Address, Env, Vec,
 };
 
-/// Unique stream identifier (auto-incremented).
-pub type StreamId = u64;
-
 /// Status of a payroll stream.
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -21,7 +18,7 @@ pub enum StreamStatus {
 #[contracttype]
 #[derive(Clone, Debug)]
 pub struct Stream {
-    pub id: StreamId,
+    pub id: u64,
     pub employer: Address,
     pub employee: Address,
     pub token: Address,
@@ -47,7 +44,7 @@ pub enum DataKey {
     /// Next stream ID counter.
     NextId,
     /// Stream data by ID.
-    Stream(StreamId),
+    Stream(u64),
     /// List of stream IDs for an employer.
     EmployerStreams(Address),
     /// List of stream IDs for an employee.
@@ -101,7 +98,7 @@ impl StreamContract {
         rate_per_second: i128,
         start_time: u64,
         end_time: u64,
-    ) -> Result<StreamId, StreamError> {
+    ) -> Result<u64, StreamError> {
         employer.require_auth();
 
         // Validate parameters.
@@ -123,7 +120,7 @@ impl StreamContract {
         token_client.transfer(&employer, &contract_addr, &total_funded);
 
         // Allocate stream ID.
-        let id: StreamId = env
+        let id: u64 = env
             .storage()
             .instance()
             .get(&DataKey::NextId)
@@ -168,7 +165,7 @@ impl StreamContract {
     }
 
     /// Compute the currently accrued-but-unwithdrawn balance for a stream.
-    pub fn get_accrued(env: Env, stream_id: StreamId) -> Result<i128, StreamError> {
+    pub fn get_accrued(env: Env, stream_id: u64) -> Result<i128, StreamError> {
         let stream: Stream = env
             .storage()
             .persistent()
@@ -182,7 +179,7 @@ impl StreamContract {
     pub fn withdraw(
         env: Env,
         employee: Address,
-        stream_id: StreamId,
+        stream_id: u64,
         amount: i128,
     ) -> Result<i128, StreamError> {
         employee.require_auth();
@@ -240,7 +237,7 @@ impl StreamContract {
     pub fn cancel_stream(
         env: Env,
         employer: Address,
-        stream_id: StreamId,
+        stream_id: u64,
     ) -> Result<(i128, i128), StreamError> {
         employer.require_auth();
 
@@ -295,7 +292,7 @@ impl StreamContract {
     pub fn pause_stream(
         env: Env,
         employer: Address,
-        stream_id: StreamId,
+        stream_id: u64,
     ) -> Result<(), StreamError> {
         employer.require_auth();
 
@@ -327,7 +324,7 @@ impl StreamContract {
     pub fn resume_stream(
         env: Env,
         employer: Address,
-        stream_id: StreamId,
+        stream_id: u64,
     ) -> Result<(), StreamError> {
         employer.require_auth();
 
@@ -361,7 +358,7 @@ impl StreamContract {
     pub fn top_up(
         env: Env,
         employer: Address,
-        stream_id: StreamId,
+        stream_id: u64,
         amount: i128,
     ) -> Result<(), StreamError> {
         employer.require_auth();
@@ -410,7 +407,7 @@ impl StreamContract {
     // ──────────────────────────────────────────────
 
     /// Get full stream details.
-    pub fn get_stream(env: Env, stream_id: StreamId) -> Result<Stream, StreamError> {
+    pub fn get_stream(env: Env, stream_id: u64) -> Result<Stream, StreamError> {
         env.storage()
             .persistent()
             .get(&DataKey::Stream(stream_id))
@@ -418,7 +415,7 @@ impl StreamContract {
     }
 
     /// List all stream IDs for an employer.
-    pub fn get_employer_streams(env: Env, employer: Address) -> Vec<StreamId> {
+    pub fn get_employer_streams(env: Env, employer: Address) -> Vec<u64> {
         env.storage()
             .persistent()
             .get(&DataKey::EmployerStreams(employer))
@@ -426,7 +423,7 @@ impl StreamContract {
     }
 
     /// List all stream IDs for an employee.
-    pub fn get_employee_streams(env: Env, employee: Address) -> Vec<StreamId> {
+    pub fn get_employee_streams(env: Env, employee: Address) -> Vec<u64> {
         env.storage()
             .persistent()
             .get(&DataKey::EmployeeStreams(employee))
@@ -477,8 +474,8 @@ impl StreamContract {
     }
 
     /// Push a stream ID to a persistent list (employer or employee index).
-    fn push_stream_to_list(env: &Env, key: &DataKey, stream_id: StreamId) {
-        let mut list: Vec<StreamId> = env
+    fn push_stream_to_list(env: &Env, key: &DataKey, stream_id: u64) {
+        let mut list: Vec<u64> = env
             .storage()
             .persistent()
             .get(key)
@@ -509,7 +506,6 @@ mod test {
         env.mock_all_auths();
 
         let contract_id = env.register(StreamContract, ());
-        let client = StreamContractClient::new(&env, &contract_id);
 
         let employer = Address::generate(&env);
         let employee = Address::generate(&env);

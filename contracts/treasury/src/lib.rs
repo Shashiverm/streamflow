@@ -4,13 +4,11 @@ use soroban_sdk::{
     contract, contractimpl, contracttype, contracterror, token, Address, Env, Vec,
 };
 
-pub type TreasuryId = u64;
-
 /// Treasury data — pooled employer funds.
 #[contracttype]
 #[derive(Clone, Debug)]
 pub struct Treasury {
-    pub id: TreasuryId,
+    pub id: u64,
     pub employer: Address,
     pub token: Address,
     pub balance: i128,
@@ -23,7 +21,7 @@ pub struct Treasury {
 #[derive(Clone)]
 pub enum DataKey {
     NextId,
-    Treasury(TreasuryId),
+    Treasury(u64),
     EmployerTreasury(Address),
     StreamContract,
 }
@@ -70,10 +68,10 @@ impl TreasuryContract {
         env: Env,
         employer: Address,
         token: Address,
-    ) -> Result<TreasuryId, TreasuryError> {
+    ) -> Result<u64, TreasuryError> {
         employer.require_auth();
 
-        let id: TreasuryId = env
+        let id: u64 = env
             .storage()
             .instance()
             .get(&DataKey::NextId)
@@ -111,7 +109,7 @@ impl TreasuryContract {
     pub fn deposit(
         env: Env,
         employer: Address,
-        treasury_id: TreasuryId,
+        treasury_id: u64,
         amount: i128,
     ) -> Result<i128, TreasuryError> {
         employer.require_auth();
@@ -149,7 +147,7 @@ impl TreasuryContract {
     pub fn withdraw_from_treasury(
         env: Env,
         employer: Address,
-        treasury_id: TreasuryId,
+        treasury_id: u64,
         amount: i128,
     ) -> Result<i128, TreasuryError> {
         employer.require_auth();
@@ -189,7 +187,7 @@ impl TreasuryContract {
     pub fn allocate_for_stream(
         env: Env,
         employer: Address,
-        treasury_id: TreasuryId,
+        treasury_id: u64,
         stream_id: u64,
         amount: i128,
     ) -> Result<(), TreasuryError> {
@@ -228,7 +226,7 @@ impl TreasuryContract {
     pub fn release_allocation(
         env: Env,
         employer: Address,
-        treasury_id: TreasuryId,
+        treasury_id: u64,
         amount: i128,
     ) -> Result<(), TreasuryError> {
         employer.require_auth();
@@ -260,7 +258,7 @@ impl TreasuryContract {
     // ──────────────────────────────────────────────
 
     /// Get treasury details.
-    pub fn get_treasury(env: Env, treasury_id: TreasuryId) -> Result<Treasury, TreasuryError> {
+    pub fn get_treasury(env: Env, treasury_id: u64) -> Result<Treasury, TreasuryError> {
         env.storage()
             .persistent()
             .get(&DataKey::Treasury(treasury_id))
@@ -270,7 +268,7 @@ impl TreasuryContract {
     /// Get available (unallocated) balance.
     pub fn get_available_balance(
         env: Env,
-        treasury_id: TreasuryId,
+        treasury_id: u64,
     ) -> Result<i128, TreasuryError> {
         let treasury: Treasury = env
             .storage()
@@ -285,7 +283,7 @@ impl TreasuryContract {
     pub fn get_employer_treasury(
         env: Env,
         employer: Address,
-    ) -> Result<TreasuryId, TreasuryError> {
+    ) -> Result<u64, TreasuryError> {
         env.storage()
             .persistent()
             .get(&DataKey::EmployerTreasury(employer))
@@ -311,7 +309,7 @@ mod test {
     use std::boxed::Box;
     use super::*;
     use soroban_sdk::{
-        testutils::{Address as _, Ledger},
+        testutils::Address as _,
         token::{StellarAssetClient, TokenClient},
         Env,
     };
@@ -321,7 +319,6 @@ mod test {
         env.mock_all_auths();
 
         let contract_id = env.register(TreasuryContract, ());
-        let client = TreasuryContractClient::new(&env, &contract_id);
 
         let employer = Address::generate(&env);
 

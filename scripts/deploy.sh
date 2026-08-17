@@ -7,33 +7,43 @@ set -e
 echo "🚀 StreamFlow Contract Deployment"
 echo "=================================="
 
+# Locate stellar CLI (native or Windows .exe under WSL)
+if command -v stellar &> /dev/null; then
+  STELLAR="stellar"
+elif command -v stellar.exe &> /dev/null; then
+  STELLAR="stellar.exe"
+else
+  echo "❌ Error: 'stellar' CLI not found. Please install the Stellar CLI or run via PowerShell."
+  exit 1
+fi
+
 # Configuration
 NETWORK="testnet"
 SOURCE_IDENTITY="deployer"
 
 # Check if identity exists, create if not
-if ! stellar keys address $SOURCE_IDENTITY 2>/dev/null; then
+if ! $STELLAR keys address $SOURCE_IDENTITY 2>/dev/null; then
   echo "📋 Creating deployer identity..."
-  stellar keys generate $SOURCE_IDENTITY --network $NETWORK --fund
+  $STELLAR keys generate $SOURCE_IDENTITY --network $NETWORK --fund
   echo "✅ Identity created and funded"
 else
   echo "✅ Using existing deployer identity"
 fi
 
-DEPLOYER_ADDRESS=$(stellar keys address $SOURCE_IDENTITY)
+DEPLOYER_ADDRESS=$($STELLAR keys address $SOURCE_IDENTITY)
 echo "📍 Deployer: $DEPLOYER_ADDRESS"
 
 # Build contracts
 echo ""
 echo "🔨 Building contracts..."
 cd "$(dirname "$0")/../contracts"
-stellar contract build
+$STELLAR contract build
 echo "✅ Contracts built"
 
 # Deploy Stream Contract
 echo ""
 echo "📡 Deploying Stream Contract..."
-STREAM_ID=$(stellar contract deploy \
+STREAM_ID=$($STELLAR contract deploy \
   --wasm target/wasm32v1-none/release/stream.wasm \
   --source $SOURCE_IDENTITY \
   --network $NETWORK)
@@ -42,7 +52,7 @@ echo "✅ Stream Contract: $STREAM_ID"
 # Deploy Treasury Contract
 echo ""
 echo "📡 Deploying Treasury Contract..."
-TREASURY_ID=$(stellar contract deploy \
+TREASURY_ID=$($STELLAR contract deploy \
   --wasm target/wasm32v1-none/release/treasury.wasm \
   --source $SOURCE_IDENTITY \
   --network $NETWORK)
@@ -51,7 +61,7 @@ echo "✅ Treasury Contract: $TREASURY_ID"
 # Initialize Treasury with Stream contract address
 echo ""
 echo "🔗 Initializing Treasury with Stream contract..."
-stellar contract invoke \
+$STELLAR contract invoke \
   --id $TREASURY_ID \
   --source $SOURCE_IDENTITY \
   --network $NETWORK \
