@@ -1,12 +1,14 @@
 /**
  * StreamFlow — Employee Dashboard
- * Real-time continuous streaming payroll with instant withdrawals, SEP-24 off-ramp, and income projections.
+ * Real-time Streaming Payroll, 1-Click Batch Claim, Cliff Vesting & Key Migration
  */
 
 import {
   getEmployeeStreams,
   getAccrued,
   withdrawFromStream,
+  batchWithdrawAll,
+  transferRecipient,
   getTransactionHistory,
   exportPayrollCSV,
   calculateProjections,
@@ -19,7 +21,7 @@ import {
   getConnectedWalletType,
 } from '../stellar.js';
 import { trackPageView, trackEvent } from '../analytics.js';
-import { renderOfframpSection, getSupportedCurrencies } from '../anchor.js';
+import { renderOfframpSection } from '../anchor.js';
 import { navigate } from '../router.js';
 
 export function renderEmployee(app) {
@@ -34,13 +36,15 @@ export function renderEmployee(app) {
 
   let intervals = [];
   let showWithdrawModal = false;
+  let showTransferModal = false;
   let showQRModal = false;
   let withdrawStreamId = null;
+  let transferStreamId = null;
   let isWithdrawing = false;
+  let isTransferring = false;
   let employeeBalance = 0;
-  let selectedCurrencyDisplay = 'XLM'; // 'XLM' | 'USD' | 'EUR'
+  let selectedCurrencyDisplay = 'XLM';
 
-  // Approximate FX conversion rates for display
   const XLM_TO_USD = 0.12;
   const XLM_TO_EUR = 0.11;
 
@@ -53,6 +57,9 @@ export function renderEmployee(app) {
     .catch(() => {});
 
   function render() {
+    intervals.forEach(clearInterval);
+    intervals = [];
+
     const streams = getEmployeeStreams(address);
     const txHistory = getTransactionHistory(address);
 
@@ -71,13 +78,11 @@ export function renderEmployee(app) {
       }
     });
 
-    // Projections based on active streaming rate
     const projHourly = combinedRatePerSecond * 3600;
     const projDaily8h = projHourly * 8;
     const projWeekly = combinedRatePerSecond * 86400 * 7;
     const projMonthly = combinedRatePerSecond * 86400 * 30;
 
-    // Converted display values
     let displayAmount = totalAccrued.toFixed(4);
     let currencySymbol = 'XLM';
     if (selectedCurrencyDisplay === 'USD') {
@@ -92,7 +97,7 @@ export function renderEmployee(app) {
       <nav class="navbar">
         <div class="container navbar-container">
           <a href="/" data-link class="navbar-brand">
-            <img src="/logo.svg" alt="StreamFlow" width="28" height="28">
+            <img src="/logo.svg" alt="StreamFlow" width="30" height="30">
             <span>Stream<span class="gradient-text">Flow</span></span>
           </a>
           <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation">
@@ -105,7 +110,7 @@ export function renderEmployee(app) {
               <div class="nav-wallet-chip" title="${address}">
                 <span class="dot"></span>
                 <span class="chip-text">${truncateAddress(address)}</span>
-                <span class="chip-badge">${walletType.toUpperCase()}</span>
+                <span class="badge badge-active" style="font-size: 0.65rem;">${walletType.toUpperCase()}</span>
               </div>
             </li>
             <li>
@@ -117,292 +122,298 @@ export function renderEmployee(app) {
         </div>
       </nav>
 
-      <div class="dashboard">
+      <div class="page">
         <div class="container">
-          <div class="dashboard-header flex flex-between" style="flex-wrap: wrap; gap: var(--space-md);">
+          <!-- Header Bar -->
+          <div class="flex flex-between mb-xl" style="flex-wrap: wrap; gap: var(--space-md);">
             <div>
               <div class="flex gap-sm align-center" style="flex-wrap: wrap;">
-                <h1>Employee Portal</h1>
+                <h1>Employee Earnings Portal</h1>
                 <span class="badge badge-active">Live Accrual</span>
               </div>
               <p class="text-muted" style="margin-top: 4px; word-break: break-all;">
-                Wallet: <span class="mono text-accent">${address}</span>
+                Recipient Wallet: <span class="mono" style="color: var(--accent-mint);">${address}</span>
               </p>
             </div>
-            <div class="flex gap-sm dashboard-actions" style="flex-wrap: wrap;">
-              <button class="btn btn-outline btn-sm" id="btn-share-qr" title="Show QR Code for employer to fund you">
+
+            <div class="flex gap-sm align-center" style="flex-wrap: wrap;">
+              <button class="btn btn-outline btn-sm" id="btn-share-qr">
                 📱 Share Address
               </button>
-              <button class="btn btn-outline btn-sm" id="btn-export-csv" title="Download CSV report of all wages received">
+              <button class="btn btn-outline btn-sm" id="btn-export-csv">
                 📥 Export Pay Stubs
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-batch-claim-all" ${totalAccrued <= 0 ? 'disabled' : ''}>
+                ⚡ Claim All Accrued (${totalAccrued.toFixed(2)} XLM)
               </button>
             </div>
           </div>
 
           <!-- Live Streaming Balance Hero -->
-          <div class="card live-balance mb-xl" style="position: relative; overflow: hidden;">
-            <div class="flex flex-between" style="position: relative; z-index: 2;">
-              <div class="label">Available Accrued Wages (Per-Second)</div>
-              <!-- Currency Toggle -->
-              <div class="flex gap-xs" style="background: rgba(0, 0, 0, 0.4); padding: 2px 6px; border-radius: var(--radius-full); border: 1px solid var(--border-subtle);">
-                <button class="btn btn-xs ${selectedCurrencyDisplay === 'XLM' ? 'btn-primary' : 'btn-ghost'}" data-curr="XLM" style="padding: 2px 8px; font-size: 0.75rem;">XLM</button>
-                <button class="btn btn-xs ${selectedCurrencyDisplay === 'USD' ? 'btn-primary' : 'btn-ghost'}" data-curr="USD" style="padding: 2px 8px; font-size: 0.75rem;">USD ($)</button>
-                <button class="btn btn-xs ${selectedCurrencyDisplay === 'EUR' ? 'btn-primary' : 'btn-ghost'}" data-curr="EUR" style="padding: 2px 8px; font-size: 0.75rem;">EUR (€)</button>
+          <div class="card card-gold mb-xl" style="padding: clamp(16px, 3vw, 32px); text-align: center; position: relative;">
+            <div class="flex flex-between align-center mb-md" style="flex-wrap: wrap; gap: var(--space-xs);">
+              <span class="text-muted" style="font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
+                Live Unclaimed Accrued Wages
+              </span>
+              <div class="tab-group" style="margin: 0; padding: 2px;">
+                <button class="tab-btn ${selectedCurrencyDisplay === 'XLM' ? 'active' : ''}" data-curr="XLM" style="padding: 4px 10px; font-size: 0.75rem;">XLM</button>
+                <button class="tab-btn ${selectedCurrencyDisplay === 'USD' ? 'active' : ''}" data-curr="USD" style="padding: 4px 10px; font-size: 0.75rem;">USD ($)</button>
+                <button class="tab-btn ${selectedCurrencyDisplay === 'EUR' ? 'active' : ''}" data-curr="EUR" style="padding: 4px 10px; font-size: 0.75rem;">EUR (€)</button>
               </div>
             </div>
 
-            <div style="position: relative; z-index: 2; margin: var(--space-sm) 0;">
-              <span class="amount font-mono font-bold" id="live-total-accrued" style="letter-spacing: -0.02em;">${displayAmount}</span>
-              <span class="currency">${currencySymbol}</span>
+            <div class="mono font-bold streaming" id="hero-live-counter" style="font-size: clamp(2rem, 4.2vw, 3.4rem); margin: var(--space-md) 0; font-variant-numeric: tabular-nums;">
+              ${displayAmount}
             </div>
 
-            <div class="rate" style="position: relative; z-index: 2;">
-              ${activeStreams > 0
-                ? `<span class="badge badge-active">🟢 Streaming +${combinedRatePerSecond.toFixed(4)} XLM/sec</span> • Withdrawable on Soroban anytime`
-                : '<span class="badge badge-paused">No Active Incoming Streams</span>'}
+            <p class="text-muted" style="font-size: 0.88rem; margin-bottom: var(--space-lg);">
+              Accruing continuously at <span class="mono font-bold" style="color: var(--accent-mint);">${combinedRatePerSecond.toFixed(6)} XLM/sec</span> across ${activeStreams} active stream(s)
+            </p>
+
+            <div class="flex flex-center gap-md flex-wrap">
+              <button class="btn btn-primary btn-lg" id="btn-hero-claim-all" ${totalAccrued <= 0 ? 'disabled' : ''}>
+                💸 Withdraw Accrued Balance
+              </button>
+              <a href="#anchor-offramp" class="btn btn-outline btn-lg">
+                🌍 Off-Ramp to Local Fiat (SEP-24) ↓
+              </a>
             </div>
           </div>
 
           <!-- Stats Grid -->
-          <div class="stats-grid">
+          <div class="grid-4 gap-md mb-xl">
             <div class="card stat-card">
-              <div class="stat-value streaming" id="stat-accrued">${totalAccrued.toFixed(2)}</div>
-              <div class="stat-label">Accrued (Unwithdrawn)</div>
-            </div>
-            <div class="card stat-card">
-              <div class="stat-value" style="color: var(--accent-cyan);">
-                ${totalWithdrawn.toFixed(2)}
+              <div class="stat-header">
+                <span class="stat-label">Active Streams</span>
+                <div class="stat-icon">⚡</div>
               </div>
-              <div class="stat-label">Total Withdrawn</div>
+              <div class="stat-value streaming">${activeStreams}</div>
             </div>
-            <div class="card stat-card">
-              <div class="stat-value gradient-text">${activeStreams}</div>
-              <div class="stat-label">Active Incoming Streams</div>
-            </div>
-            <div class="card stat-card">
-              <div class="stat-value" id="employee-balance-val" style="color: var(--accent-violet);">
-                ${employeeBalance ? employeeBalance.toFixed(2) + ' XLM' : '—'}
+
+            <div class="card stat-card card-gold">
+              <div class="stat-header">
+                <span class="stat-label">Total Withdrawn</span>
+                <div class="stat-icon gold">💸</div>
               </div>
-              <div class="stat-label">Testnet Wallet Balance</div>
+              <div class="stat-value gold-text">${totalWithdrawn.toFixed(2)} XLM</div>
+            </div>
+
+            <div class="card stat-card">
+              <div class="stat-header">
+                <span class="stat-label">Projected Monthly</span>
+                <div class="stat-icon">📈</div>
+              </div>
+              <div class="stat-value" style="color: var(--accent-mint);">${projMonthly.toFixed(0)} XLM</div>
+            </div>
+
+            <div class="card stat-card card-gold">
+              <div class="stat-header">
+                <span class="stat-label">Wallet Balance</span>
+                <div class="stat-icon gold">🪙</div>
+              </div>
+              <div class="stat-value" id="employee-balance-val" style="color: var(--accent-gold);">${employeeBalance.toFixed(2)} XLM</div>
             </div>
           </div>
 
-          <!-- Earnings Projection Breakdown Card -->
-          ${activeStreams > 0 ? `
-            <div class="card mb-xl" style="background: radial-gradient(ellipse at bottom, rgba(0, 200, 150, 0.06) 0%, rgba(12, 16, 32, 0.7) 100%);">
-              <div class="flex flex-between mb-md">
-                <h3 style="font-size: 1.1rem;">📈 Real-Time Earnings Projections</h3>
-                <span class="text-muted" style="font-size: 0.8rem;">Rate: <strong class="mono text-success">+${(combinedRatePerSecond * 3600).toFixed(2)} XLM/hr</strong></span>
-              </div>
-              <div class="grid-4 gap-md text-center">
-                <div class="card-flat" style="padding: var(--space-md);">
-                  <div class="text-muted" style="font-size: 0.75rem;">Next 1 Hour</div>
-                  <div class="mono font-bold text-accent" style="font-size: 1.25rem;">+${projHourly.toFixed(2)} XLM</div>
-                  <div class="text-muted" style="font-size: 0.7rem;">~$${(projHourly * XLM_TO_USD).toFixed(2)}</div>
-                </div>
-                <div class="card-flat" style="padding: var(--space-md);">
-                  <div class="text-muted" style="font-size: 0.75rem;">8-Hour Workday</div>
-                  <div class="mono font-bold text-success" style="font-size: 1.25rem;">+${projDaily8h.toFixed(2)} XLM</div>
-                  <div class="text-muted" style="font-size: 0.7rem;">~$${(projDaily8h * XLM_TO_USD).toFixed(2)}</div>
-                </div>
-                <div class="card-flat" style="padding: var(--space-md);">
-                  <div class="text-muted" style="font-size: 0.75rem;">7 Days (Weekly)</div>
-                  <div class="mono font-bold" style="font-size: 1.25rem;">+${projWeekly.toFixed(2)} XLM</div>
-                  <div class="text-muted" style="font-size: 0.7rem;">~$${(projWeekly * XLM_TO_USD).toFixed(2)}</div>
-                </div>
-                <div class="card-flat" style="padding: var(--space-md);">
-                  <div class="text-muted" style="font-size: 0.75rem;">30 Days (Monthly)</div>
-                  <div class="mono font-bold text-emerald" style="font-size: 1.25rem;">+${projMonthly.toFixed(2)} XLM</div>
-                  <div class="text-muted" style="font-size: 0.7rem;">~$${(projMonthly * XLM_TO_USD).toFixed(2)}</div>
-                </div>
+          <!-- Active Streams List -->
+          <div class="card mb-xl" style="padding: var(--space-lg);">
+            <div class="flex flex-between align-center mb-md">
+              <div class="flex align-center gap-xs">
+                <span style="font-size: 1.2rem;">🌊</span>
+                <h3 style="margin: 0;">Incoming Payroll Streams</h3>
+                <span class="badge badge-active">${streams.length} Total</span>
               </div>
             </div>
-          ` : ''}
 
-          <!-- Active Streams -->
-          <div class="card mb-xl">
-            <div class="flex flex-between mb-md">
-              <h3 style="font-size: 1.1rem;">📡 Incoming Payroll Streams</h3>
-              <span class="text-muted" style="font-size: 0.8rem;">
-                Contract: <a href="https://stellar.expert/explorer/testnet/contract/${CONTRACTS.STREAM}" target="_blank" class="mono text-accent">${truncateAddress(CONTRACTS.STREAM)} ↗</a>
-              </span>
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Employer</th>
+                    <th>Flow Rate</th>
+                    <th>Claimed / Total</th>
+                    <th>Live Claimable</th>
+                    <th>Cliff Status</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${streams.length === 0 ? `
+                    <tr>
+                      <td colspan="8" style="text-align: center; padding: var(--space-2xl) 0;" class="text-muted">
+                        No active payroll streams found for this address. Share your Stellar public key with your employer.
+                      </td>
+                    </tr>
+                  ` : streams.map((s) => {
+                    const accrued = getAccrued(s.id);
+                    const now = Date.now() / 1000;
+                    const isCliffActive = s.cliffTime > 0 && now < s.cliffTime;
+
+                    return `
+                      <tr>
+                        <td class="mono font-bold" style="color: var(--accent-mint);">#${s.id}</td>
+                        <td><span class="mono">${truncateAddress(s.employer)}</span></td>
+                        <td class="mono">${s.ratePerSecond} <span class="text-muted" style="font-size: 0.75rem;">/s</span></td>
+                        <td class="mono">${s.withdrawn.toFixed(1)} / ${s.totalFunded} XLM</td>
+                        <td class="mono font-bold" style="color: var(--accent-mint);" id="stream-live-accrued-${s.id}">
+                          ${accrued.toFixed(4)} XLM
+                        </td>
+                        <td>
+                          ${isCliffActive ? `
+                            <span class="badge badge-cliff">
+                              🔒 Locks until ${new Date(s.cliffTime * 1000).toLocaleDateString()}
+                            </span>
+                          ` : `
+                            <span class="text-muted" style="font-size: 0.8rem;">Unlocked</span>
+                          `}
+                        </td>
+                        <td>
+                          <span class="badge badge-${s.status.toLowerCase()}">${s.status}</span>
+                        </td>
+                        <td style="text-align: right;">
+                          <div class="flex gap-xs" style="justify-content: flex-end;">
+                            <button class="btn btn-primary btn-sm btn-action-withdraw" data-id="${s.id}" ${accrued <= 0 ? 'disabled' : ''}>
+                              Claim
+                            </button>
+                            <button class="btn btn-outline btn-sm btn-action-migrate" data-id="${s.id}" title="Migrate payout address to new wallet">
+                              🔑 Migrate
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    `;
+                  }).join('')}
+                </tbody>
+              </table>
             </div>
+          </div>
 
-            ${streams.length === 0 ? `
-              <div class="empty-state">
-                <div class="empty-icon">📭</div>
-                <p>No streams assigned to your address yet.</p>
-                <p class="text-muted" style="font-size: 0.85rem; margin-top: var(--space-xs);">
-                  Share your public key with your employer:
+          <!-- Anchor Off-Ramp Section (SEP-24 / SEP-6) -->
+          <div id="anchor-offramp" class="card card-gold mb-xl" style="padding: var(--space-xl);">
+            <div class="flex align-center gap-xs mb-sm">
+              <span style="font-size: 1.3rem;">🌍</span>
+              <h3 style="margin: 0;">Stellar Anchor Off-Ramp (SEP-24)</h3>
+              <span class="badge badge-active">Global Cash-Out</span>
+            </div>
+            <p class="text-muted" style="font-size: 0.88rem; margin-bottom: var(--space-lg);">
+              Off-ramp your accrued XLM / USDC to your local bank account, Mobile Money, or cash pickup via regulated Stellar Anchors worldwide (MoneyGram, Bitso, Cowrie, Anclap).
+            </p>
+
+            <div class="grid-3 gap-md">
+              <div class="card-flat" style="padding: var(--space-md); background: rgba(0,0,0,0.3);">
+                <div class="flex align-center gap-xs mb-xs">
+                  <span style="font-size: 1.2rem;">🏦</span>
+                  <strong style="color: var(--accent-gold);">MoneyGram Access</strong>
+                </div>
+                <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
+                  Cash in / cash out at 400,000+ locations in 180+ countries with zero fees.
                 </p>
-                <div class="wallet-status mt-sm" style="display: inline-flex; cursor: pointer;" id="copy-address-btn" title="Click to copy">
-                  📋 ${address}
+                <a href="https://www.moneygram.com/stellar" target="_blank" class="btn btn-outline btn-sm" style="width: 100%;">
+                  Open MoneyGram ↗
+                </a>
+              </div>
+
+              <div class="card-flat" style="padding: var(--space-md); background: rgba(0,0,0,0.3);">
+                <div class="flex align-center gap-xs mb-xs">
+                  <span style="font-size: 1.2rem;">🇲🇽</span>
+                  <strong style="color: var(--accent-gold);">Bitso (LATAM)</strong>
                 </div>
+                <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
+                  Instant bank payout in MXN, ARS, BRL, and COP via SPEI / PIX.
+                </p>
+                <a href="https://bitso.com" target="_blank" class="btn btn-outline btn-sm" style="width: 100%;">
+                  Open Bitso ↗
+                </a>
               </div>
-            ` : `
-              <div class="flex flex-col gap-md">
-                ${streams.map((s) => renderStreamCard(s)).join('')}
+
+              <div class="card-flat" style="padding: var(--space-md); background: rgba(0,0,0,0.3);">
+                <div class="flex align-center gap-xs mb-xs">
+                  <span style="font-size: 1.2rem;">🇳🇬</span>
+                  <strong style="color: var(--accent-gold);">Cowrie (Africa)</strong>
+                </div>
+                <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
+                  Direct Nigerian Naira (NGN) bank and mobile wallet off-ramping.
+                </p>
+                <a href="https://cowrie.exchange" target="_blank" class="btn btn-outline btn-sm" style="width: 100%;">
+                  Open Cowrie ↗
+                </a>
               </div>
-            `}
-          </div>
-
-          <!-- Off-Ramp Section (SEP-24) -->
-          <div class="mb-xl" id="offramp-section"></div>
-
-          <!-- Transaction History -->
-          <div class="card">
-            <div class="flex flex-between mb-md">
-              <h3 style="font-size: 1.1rem;">📋 Verified Activity & Receipts</h3>
-              <span class="text-muted" style="font-size: 0.8rem;">Audited on Stellar Testnet</span>
             </div>
-            ${txHistory.length === 0 ? `
-              <div class="empty-state" style="padding: var(--space-lg);">
-                <p class="text-muted">No transactions recorded yet.</p>
-              </div>
-            ` : `
-              <div class="tx-list">
-                ${txHistory.slice(0, 10).map((tx) => `
-                  <div class="tx-item">
-                    <div>
-                      <div style="font-size: 0.85rem; font-weight: 500;">
-                        ${tx.type === 'withdraw' ? '💰 Payroll Withdrawal' :
-                          tx.type === 'create_stream' ? '📡 Stream Created' :
-                          tx.type === 'cancel_stream' ? '⛔ Stream Cancelled' :
-                          tx.type}
-                      </div>
-                      <div class="tx-hash">
-                        <a href="https://stellar.expert/explorer/testnet/tx/${tx.txHash}" target="_blank" style="color: var(--accent-cyan);">
-                          Tx: ${tx.txHash.slice(0, 14)}... ↗
-                        </a>
-                      </div>
-                      <div class="tx-time">${new Date(tx.timestamp).toLocaleString()}</div>
-                    </div>
-                    <div style="text-align: right;">
-                      ${tx.amount ? `<div class="tx-amount">+${Number(tx.amount).toFixed(4)} XLM</div>` : ''}
-                      ${tx.streamId !== undefined ? `<div class="text-muted" style="font-size: 0.75rem;">Stream #${tx.streamId}</div>` : ''}
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            `}
           </div>
         </div>
       </div>
 
-      ${showWithdrawModal ? renderWithdrawModal() : ''}
+      <!-- Withdraw Modal -->
+      ${showWithdrawModal ? renderWithdrawModal(streams) : ''}
+
+      <!-- Migrate / Transfer Key Modal -->
+      ${showTransferModal ? renderTransferModal() : ''}
+
+      <!-- Share QR Modal -->
       ${showQRModal ? renderQRModal() : ''}
     `;
 
-    // Render off-ramp section
-    const offrampEl = document.getElementById('offramp-section');
-    if (offrampEl) {
-      renderOfframpSection(offrampEl, address, totalAccrued);
-    }
-
     attachListeners();
-    startLiveUpdates();
+    startLiveTickers(streams);
   }
 
-  function renderStreamCard(s) {
-    const accrued = getAccrued(s.id);
-    const progress = s.totalFunded > 0 ? ((s.withdrawn + accrued) / s.totalFunded) * 100 : 0;
-    const remaining = Math.max(0, s.totalFunded - s.withdrawn);
-
-    const statusClass = {
-      Active: 'badge-active',
-      Paused: 'badge-paused',
-      Cancelled: 'badge-cancelled',
-      Completed: 'badge-completed',
-    }[s.status] || '';
+  function renderWithdrawModal(streams) {
+    const stream = streams.find((s) => s.id === withdrawStreamId);
+    const accrued = stream ? getAccrued(stream.id) : 0;
 
     return `
-      <div class="card-flat" style="padding: var(--space-lg); border: 1px solid rgba(79, 125, 249, 0.15);">
-        <div class="flex flex-between mb-md" style="flex-wrap: wrap; gap: var(--space-sm);">
-          <div>
-            <div class="flex gap-sm" style="align-items: center;">
-              <span class="font-semibold" style="font-size: 1.05rem;">Stream #${s.id}</span>
-              <span class="badge ${statusClass}">${s.status}</span>
-              <span class="badge badge-outline">${s.token || 'XLM'}</span>
-            </div>
-            <div class="text-muted" style="font-size: 0.8rem; margin-top: 4px;">
-              Employer: <a href="https://stellar.expert/explorer/testnet/account/${s.employer}" target="_blank" class="mono text-accent">${truncateAddress(s.employer)} ↗</a>
-            </div>
+      <div class="modal-backdrop" id="modal-backdrop-withdraw">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 style="margin: 0;">Withdraw from Stream #${withdrawStreamId}</h3>
+            <button class="modal-close" id="btn-close-withdraw">✕</button>
           </div>
-          ${s.status === 'Active' || s.status === 'Paused' ? `
-            <button class="btn btn-success btn-sm" data-withdraw="${s.id}">
-              💰 Instant Withdraw
+
+          <form id="form-withdraw">
+            <div class="card-flat mb-md" style="padding: var(--space-md); background: rgba(0,0,0,0.3);">
+              <span class="text-muted" style="font-size: 0.78rem;">Current Accrued & Claimable:</span>
+              <div class="mono font-bold" style="color: var(--accent-mint); font-size: 1.4rem;">${accrued.toFixed(4)} XLM</div>
+            </div>
+
+            <div class="form-group mb-md">
+              <label class="form-label">Withdraw Amount (XLM)</label>
+              <input type="number" step="0.0001" max="${accrued}" class="form-input mono" id="input-withdraw-amount" value="${accrued.toFixed(4)}" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg w-full" style="width: 100%;" ${isWithdrawing ? 'disabled' : ''}>
+              ${isWithdrawing ? 'Transferring to Wallet...' : 'Confirm Claim'}
             </button>
-          ` : ''}
-        </div>
-
-        <div class="grid-4 gap-md mb-md">
-          <div>
-            <div class="text-muted" style="font-size: 0.75rem;">Streaming Rate</div>
-            <div class="mono font-semibold">${s.ratePerSecond.toFixed(4)} ${s.token || 'XLM'}/s</div>
-          </div>
-          <div>
-            <div class="text-muted" style="font-size: 0.75rem;">Live Accrued</div>
-            <div class="mono font-semibold text-success" data-stream-accrued="${s.id}">
-              ${accrued.toFixed(4)} ${s.token || 'XLM'}
-            </div>
-          </div>
-          <div>
-            <div class="text-muted" style="font-size: 0.75rem;">Total Withdrawn</div>
-            <div class="mono font-semibold">${s.withdrawn.toFixed(4)} ${s.token || 'XLM'}</div>
-          </div>
-          <div>
-            <div class="text-muted" style="font-size: 0.75rem;">Remaining in Escrow</div>
-            <div class="mono font-semibold">${remaining.toFixed(4)} ${s.token || 'XLM'}</div>
-          </div>
-        </div>
-
-        <div class="analytics-bar">
-          <div class="fill" style="width: ${Math.min(progress, 100)}%;"></div>
-        </div>
-        <div class="flex flex-between text-muted mt-sm" style="font-size: 0.75rem;">
-          <span>${progress.toFixed(1)}% stream settled</span>
-          <span>End: ${new Date(s.endTime * 1000).toLocaleDateString()}</span>
+          </form>
         </div>
       </div>
     `;
   }
 
-  function renderWithdrawModal() {
-    const stream = getEmployeeStreams(address).find((s) => s.id === withdrawStreamId);
-    if (!stream) return '';
-    const maxAccrued = getAccrued(stream.id);
-
+  function renderTransferModal() {
     return `
-      <div class="modal-overlay" id="modal-overlay">
-        <div class="modal">
+      <div class="modal-backdrop" id="modal-backdrop-transfer">
+        <div class="modal-content">
           <div class="modal-header">
-            <h3>Withdraw from Stream #${withdrawStreamId}</h3>
-            <button class="modal-close" id="modal-close">&times;</button>
+            <h3 style="margin: 0;">Migrate Recipient Wallet (Stream #${transferStreamId})</h3>
+            <button class="modal-close" id="btn-close-transfer">✕</button>
           </div>
 
-          <div class="card-flat mb-md" style="padding: var(--space-md); text-align: center; background: rgba(0, 200, 150, 0.05); border: 1px solid rgba(0, 200, 150, 0.2);">
-            <div class="text-muted" style="font-size: 0.8rem;">Current Accrued Balance</div>
-            <div class="mono font-bold text-success" style="font-size: 1.8rem;">${maxAccrued.toFixed(4)} XLM</div>
-            <div class="text-muted" style="font-size: 0.75rem;">Instant pro-rata settlement to your Stellar testnet wallet</div>
-          </div>
+          <form id="form-transfer">
+            <p class="text-muted" style="font-size: 0.82rem; margin-bottom: var(--space-md);">
+              Transfers future streaming accrual and claim rights to a new hardware wallet or address.
+            </p>
 
-          <div class="form-group mb-md">
-            <label class="form-label">Withdrawal Amount (XLM)</label>
-            <input type="number" class="form-input mono" id="withdraw-amount"
-              placeholder="0.00" step="0.0001" min="0.0001" max="${maxAccrued}"
-              value="${maxAccrued.toFixed(4)}">
-          </div>
+            <div class="form-group mb-md">
+              <label class="form-label">New Stellar Recipient Address (G...)</label>
+              <input type="text" class="form-input mono" id="input-new-recipient" placeholder="G..." required>
+            </div>
 
-          <div class="flex gap-sm mb-md">
-            <button class="btn btn-outline btn-sm" data-pct="25">25%</button>
-            <button class="btn btn-outline btn-sm" data-pct="50">50%</button>
-            <button class="btn btn-outline btn-sm" data-pct="75">75%</button>
-            <button class="btn btn-outline btn-sm" data-pct="100">Max (100%)</button>
-          </div>
-
-          <button class="btn btn-success w-full" id="btn-submit-withdraw" ${isWithdrawing ? 'disabled' : ''}>
-            ${isWithdrawing ? '<span class="spinner"></span> Confirming on Soroban...' : 'Confirm Withdrawal to Wallet'}
-          </button>
+            <button type="submit" class="btn btn-gold btn-lg w-full" style="width: 100%;" ${isTransferring ? 'disabled' : ''}>
+              ${isTransferring ? 'Updating Contract Storage...' : 'Authorize Wallet Migration'}
+            </button>
+          </form>
         </div>
       </div>
     `;
@@ -410,205 +421,184 @@ export function renderEmployee(app) {
 
   function renderQRModal() {
     return `
-      <div class="modal-overlay" id="modal-overlay">
-        <div class="modal" style="max-width: 480px; text-align: center;">
+      <div class="modal-backdrop" id="modal-backdrop-qr">
+        <div class="modal-content text-center" style="text-align: center;">
           <div class="modal-header">
-            <h3>📱 Share Receiving Address</h3>
-            <button class="modal-close" id="modal-close">&times;</button>
+            <h3 style="margin: 0;">Share Stellar Address</h3>
+            <button class="modal-close" id="btn-close-qr">✕</button>
           </div>
 
-          <div class="flex flex-col gap-md" style="align-items: center;">
-            <div style="background: white; padding: 16px; border-radius: 12px; display: inline-block;">
-              <!-- Simulated QR Code SVG -->
-              <svg width="180" height="180" viewBox="0 0 100 100">
-                <rect width="100" height="100" fill="white"/>
-                <rect x="10" y="10" width="25" height="25" fill="#0c1020"/>
-                <rect x="15" y="15" width="15" height="15" fill="white"/>
-                <rect x="18" y="18" width="9" height="9" fill="#0c1020"/>
-                
-                <rect x="65" y="10" width="25" height="25" fill="#0c1020"/>
-                <rect x="70" y="15" width="15" height="15" fill="white"/>
-                <rect x="73" y="18" width="9" height="9" fill="#0c1020"/>
-
-                <rect x="10" y="65" width="25" height="25" fill="#0c1020"/>
-                <rect x="15" y="70" width="15" height="15" fill="white"/>
-                <rect x="18" y="73" width="9" height="9" fill="#0c1020"/>
-
-                <!-- Pixel grid simulation -->
-                <rect x="42" y="15" width="6" height="6" fill="#0c1020"/>
-                <rect x="52" y="25" width="6" height="6" fill="#0c1020"/>
-                <rect x="42" y="45" width="16" height="16" fill="#4f7df9"/>
-                <rect x="65" y="45" width="6" height="6" fill="#0c1020"/>
-                <rect x="75" y="55" width="6" height="6" fill="#0c1020"/>
-                <rect x="45" y="75" width="6" height="6" fill="#0c1020"/>
-                <rect x="55" y="85" width="6" height="6" fill="#0c1020"/>
-                <rect x="70" y="75" width="12" height="12" fill="#0c1020"/>
-              </svg>
-            </div>
-
-            <div class="card-flat w-full" style="padding: var(--space-md);">
-              <div class="text-muted" style="font-size: 0.75rem; margin-bottom: 4px;">Your Stellar Testnet Public Key</div>
-              <div class="mono text-accent" style="word-break: break-all; font-size: 0.8rem;">
-                ${address}
-              </div>
-            </div>
-
-            <button class="btn btn-primary w-full" id="btn-copy-address-modal">
-              📋 Copy Public Key to Clipboard
-            </button>
+          <div style="background: white; padding: var(--space-md); border-radius: var(--radius-md); display: inline-block; margin: var(--space-md) auto;">
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${address}" alt="Stellar Address QR" style="display: block;">
           </div>
+
+          <div class="mono font-bold mt-sm mb-md" style="font-size: 0.8rem; word-break: break-all; color: var(--accent-mint);">
+            ${address}
+          </div>
+
+          <button class="btn btn-primary w-full" id="btn-copy-qr-address">
+            📋 Copy Public Address
+          </button>
         </div>
       </div>
     `;
   }
 
+  function startLiveTickers(streams) {
+    const interval = setInterval(() => {
+      let totalAccrued = 0;
+      streams.forEach((s) => {
+        const accrued = getAccrued(s.id);
+        totalAccrued += accrued;
+        const el = document.getElementById(`stream-live-accrued-${s.id}`);
+        if (el) el.textContent = `${accrued.toFixed(4)} XLM`;
+      });
+
+      const heroEl = document.getElementById('hero-live-counter');
+      if (heroEl) {
+        if (selectedCurrencyDisplay === 'USD') {
+          heroEl.textContent = `$${(totalAccrued * XLM_TO_USD).toFixed(4)}`;
+        } else if (selectedCurrencyDisplay === 'EUR') {
+          heroEl.textContent = `€${(totalAccrued * XLM_TO_EUR).toFixed(4)}`;
+        } else {
+          heroEl.textContent = totalAccrued.toFixed(4);
+        }
+      }
+    }, 150);
+    intervals.push(interval);
+  }
+
   function attachListeners() {
-    // Mobile menu toggle
-    const menuToggle = document.getElementById('mobile-menu-toggle');
-    const navbarNav = document.getElementById('navbar-nav');
-    menuToggle?.addEventListener('click', () => {
-      navbarNav?.classList.toggle('open');
-      menuToggle.classList.toggle('active');
-    });
-
-    // Logout
-    document.getElementById('nav-btn-disconnect')?.addEventListener('click', () => {
-      disconnectWallet();
-      navigate('/onboarding');
-    });
-
-    // Share QR trigger
-    document.getElementById('btn-share-qr')?.addEventListener('click', () => {
-      showQRModal = true;
-      render();
-    });
-
-    // Copy in modal
-    document.getElementById('btn-copy-address-modal')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(address);
-      showToast('Address copied to clipboard!', 'success');
-    });
-
-    // Currency toggle in hero
-    document.querySelectorAll('[data-curr]').forEach((btn) => {
+    // Currency buttons
+    document.querySelectorAll('.tab-btn[data-curr]').forEach((btn) => {
       btn.addEventListener('click', () => {
         selectedCurrencyDisplay = btn.dataset.curr;
         render();
       });
     });
 
-    // CSV Export
-    document.getElementById('btn-export-csv')?.addEventListener('click', () => {
+    // 1-Click Batch Claim All
+    const handleClaimAll = async () => {
+      const streams = getEmployeeStreams(address);
+      const streamIds = streams.map((s) => s.id);
       try {
-        exportPayrollCSV(address, 'employee');
-        showToast('Pay stubs CSV report downloaded!', 'success');
+        const res = await batchWithdrawAll(address, streamIds);
+        showToast(`Successfully claimed ${res.totalWithdrawn.toFixed(4)} XLM across ${res.txCount} stream(s)!`, 'success');
+        const bal = await getAccountBalance(address);
+        employeeBalance = bal.xlm;
+        render();
       } catch (err) {
-        showToast(err.message || 'Export failed', 'error');
+        showToast(err.message, 'error');
       }
-    });
+    };
 
-    // Copy address button
-    document.getElementById('copy-address-btn')?.addEventListener('click', () => {
-      navigator.clipboard.writeText(address);
-      showToast('Address copied to clipboard!', 'success');
-    });
+    document.getElementById('btn-batch-claim-all')?.addEventListener('click', handleClaimAll);
+    document.getElementById('btn-hero-claim-all')?.addEventListener('click', handleClaimAll);
 
-    // Withdraw triggers
-    document.querySelectorAll('[data-withdraw]').forEach((btn) => {
+    // Single Stream Claim
+    document.querySelectorAll('.btn-action-withdraw').forEach((btn) => {
       btn.addEventListener('click', () => {
-        withdrawStreamId = parseInt(btn.dataset.withdraw);
+        withdrawStreamId = parseInt(btn.dataset.id);
         showWithdrawModal = true;
         render();
       });
     });
 
-    // Modal controls
-    document.getElementById('modal-close')?.addEventListener('click', () => {
+    document.getElementById('btn-close-withdraw')?.addEventListener('click', () => {
       showWithdrawModal = false;
+      render();
+    });
+
+    document.getElementById('form-withdraw')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const amount = parseFloat(document.getElementById('input-withdraw-amount')?.value);
+      if (isNaN(amount) || amount <= 0) return;
+
+      isWithdrawing = true;
+      render();
+      try {
+        await withdrawFromStream(withdrawStreamId, amount, address);
+        isWithdrawing = false;
+        showWithdrawModal = false;
+        showToast(`Successfully withdrawn ${amount} XLM!`, 'success');
+        const bal = await getAccountBalance(address);
+        employeeBalance = bal.xlm;
+        render();
+      } catch (err) {
+        isWithdrawing = false;
+        showToast(err.message, 'error');
+        render();
+      }
+    });
+
+    // Wallet Key Migration Modal
+    document.querySelectorAll('.btn-action-migrate').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        transferStreamId = parseInt(btn.dataset.id);
+        showTransferModal = true;
+        render();
+      });
+    });
+
+    document.getElementById('btn-close-transfer')?.addEventListener('click', () => {
+      showTransferModal = false;
+      render();
+    });
+
+    document.getElementById('form-transfer')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const newRecipient = document.getElementById('input-new-recipient')?.value.trim();
+      if (!newRecipient || !newRecipient.startsWith('G')) {
+        showToast('Please enter a valid Stellar address starting with G.', 'error');
+        return;
+      }
+
+      isTransferring = true;
+      render();
+      try {
+        await transferRecipient(transferStreamId, address, newRecipient);
+        isTransferring = false;
+        showTransferModal = false;
+        showToast(`Stream #${transferStreamId} migrated to ${truncateAddress(newRecipient)}!`, 'success');
+        render();
+      } catch (err) {
+        isTransferring = false;
+        showToast(err.message, 'error');
+        render();
+      }
+    });
+
+    // QR Code Modal
+    document.getElementById('btn-share-qr')?.addEventListener('click', () => {
+      showQRModal = true;
+      render();
+    });
+
+    document.getElementById('btn-close-qr')?.addEventListener('click', () => {
       showQRModal = false;
       render();
     });
 
-    document.getElementById('modal-overlay')?.addEventListener('click', (e) => {
-      if (e.target.id === 'modal-overlay') {
-        showWithdrawModal = false;
-        showQRModal = false;
-        render();
-      }
+    document.getElementById('btn-copy-qr-address')?.addEventListener('click', () => {
+      navigator.clipboard.writeText(address);
+      showToast('Address copied to clipboard!', 'success');
     });
 
-    // Percentage buttons
-    document.querySelectorAll('[data-pct]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const pct = parseInt(btn.dataset.pct);
-        const maxAccrued = getAccrued(withdrawStreamId);
-        const amount = (maxAccrued * pct) / 100;
-        const input = document.getElementById('withdraw-amount');
-        if (input) input.value = amount.toFixed(4);
-      });
-    });
-
-    // Submit withdrawal
-    document.getElementById('btn-submit-withdraw')?.addEventListener('click', async () => {
-      const amount = parseFloat(document.getElementById('withdraw-amount')?.value);
-      if (!amount || amount <= 0) {
-        showToast('Please enter a valid amount greater than 0', 'error');
-        return;
-      }
-
-      isWithdrawing = true;
-      render();
-
+    // Export CSV
+    document.getElementById('btn-export-csv')?.addEventListener('click', () => {
       try {
-        await withdrawFromStream(withdrawStreamId, amount, address);
-        showWithdrawModal = false;
-        isWithdrawing = false;
-        showToast(`Successfully withdrew ${amount.toFixed(4)} XLM to your wallet!`, 'success');
-        trackEvent('employee', 'withdraw', address, amount);
-        render();
+        exportPayrollCSV(address, 'employee');
+        showToast('Payroll stubs CSV downloaded!', 'success');
       } catch (err) {
-        isWithdrawing = false;
-        showToast(err.message || 'Withdrawal failed', 'error');
-        render();
+        showToast(err.message, 'error');
       }
     });
-  }
 
-  function startLiveUpdates() {
-    intervals.forEach(clearInterval);
-    intervals = [];
-
-    const interval = setInterval(() => {
-      // Update individual stream cards
-      document.querySelectorAll('[data-stream-accrued]').forEach((el) => {
-        const id = parseInt(el.dataset.streamAccrued);
-        const accrued = getAccrued(id);
-        el.textContent = `${accrued.toFixed(4)} XLM`;
-      });
-
-      // Update total accrued in hero
-      const streams = getEmployeeStreams(address);
-      let total = 0;
-      streams.forEach((s) => {
-        total += getAccrued(s.id);
-      });
-
-      const totalEl = document.getElementById('live-total-accrued');
-      if (totalEl) {
-        if (selectedCurrencyDisplay === 'USD') {
-          totalEl.textContent = `$${(total * XLM_TO_USD).toFixed(4)}`;
-        } else if (selectedCurrencyDisplay === 'EUR') {
-          totalEl.textContent = `€${(total * XLM_TO_EUR).toFixed(4)}`;
-        } else {
-          totalEl.textContent = total.toFixed(4);
-        }
-      }
-
-      const statEl = document.getElementById('stat-accrued');
-      if (statEl) statEl.textContent = total.toFixed(2);
-    }, 1000);
-
-    intervals.push(interval);
+    // Logout
+    document.getElementById('nav-btn-disconnect')?.addEventListener('click', () => {
+      disconnectWallet();
+      navigate('/');
+    });
   }
 
   render();
@@ -619,10 +609,15 @@ export function renderEmployee(app) {
 }
 
 function showToast(msg, type) {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
+  let container = document.getElementById('toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container';
+    document.body.appendChild(container);
+  }
   const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
+  toast.className = `toast ${type === 'error' ? 'error' : 'success'}`;
   toast.textContent = msg;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 4000);

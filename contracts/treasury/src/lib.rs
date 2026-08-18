@@ -1,7 +1,7 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, contracterror, token, Address, Env, Vec,
+    contract, contracterror, contractimpl, contracttype, symbol_short, token, Address, Env, Vec,
 };
 
 /// Treasury data — pooled employer funds.
@@ -60,6 +60,11 @@ impl TreasuryContract {
             .set(&DataKey::StreamContract, &stream_contract);
         env.storage().instance().extend_ttl(100_000, 100_000);
 
+        env.events().publish(
+            (symbol_short!("init"), admin),
+            stream_contract,
+        );
+
         Ok(())
     }
 
@@ -84,7 +89,7 @@ impl TreasuryContract {
         let treasury = Treasury {
             id,
             employer: employer.clone(),
-            token,
+            token: token.clone(),
             balance: 0,
             allocated: 0,
             stream_ids: Vec::new(&env),
@@ -95,12 +100,17 @@ impl TreasuryContract {
             .set(&DataKey::Treasury(id), &treasury);
         env.storage()
             .persistent()
-            .set(&DataKey::EmployerTreasury(employer), &id);
+            .set(&DataKey::EmployerTreasury(employer.clone()), &id);
 
         env.storage()
             .persistent()
             .extend_ttl(&DataKey::Treasury(id), 100_000, 100_000);
         env.storage().instance().extend_ttl(100_000, 100_000);
+
+        env.events().publish(
+            (symbol_short!("tr_create"), employer),
+            (id, token),
+        );
 
         Ok(id)
     }
@@ -127,7 +137,6 @@ impl TreasuryContract {
             return Err(TreasuryError::InvalidParams);
         }
 
-        // Transfer tokens from employer to this contract.
         let token_client = token::Client::new(&env, &treasury.token);
         token_client.transfer(&employer, &env.current_contract_address(), &amount);
 
@@ -139,6 +148,11 @@ impl TreasuryContract {
         env.storage()
             .persistent()
             .set(&DataKey::Treasury(treasury_id), &treasury);
+
+        env.events().publish(
+            (symbol_short!("deposit"), employer),
+            (treasury_id, amount, treasury.balance),
+        );
 
         Ok(treasury.balance)
     }
@@ -179,11 +193,15 @@ impl TreasuryContract {
             .persistent()
             .set(&DataKey::Treasury(treasury_id), &treasury);
 
+        env.events().publish(
+            (symbol_short!("withdraw"), employer),
+            (treasury_id, amount, treasury.balance),
+        );
+
         Ok(treasury.balance)
     }
 
-    /// Allocate funds from treasury for a stream (tracked but actual stream
-    /// creation happens via the stream contract).
+    /// Allocate funds from treasury for a stream.
     pub fn allocate_for_stream(
         env: Env,
         employer: Address,
@@ -219,6 +237,11 @@ impl TreasuryContract {
             .persistent()
             .set(&DataKey::Treasury(treasury_id), &treasury);
 
+        env.events().publish(
+            (symbol_short!("allocate"), employer),
+            (treasury_id, stream_id, amount, treasury.allocated),
+        );
+
         Ok(())
     }
 
@@ -250,6 +273,11 @@ impl TreasuryContract {
             .persistent()
             .set(&DataKey::Treasury(treasury_id), &treasury);
 
+        env.events().publish(
+            (symbol_short!("release"), employer),
+            (treasury_id, amount, treasury.allocated),
+        );
+
         Ok(())
     }
 
@@ -266,10 +294,7 @@ impl TreasuryContract {
     }
 
     /// Get available (unallocated) balance.
-    pub fn get_available_balance(
-        env: Env,
-        treasury_id: u64,
-    ) -> Result<i128, TreasuryError> {
+    pub fn get_available_balance(env: Env, treasury_id: u64) -> Result<i128, TreasuryError> {
         let treasury: Treasury = env
             .storage()
             .persistent()
@@ -280,10 +305,7 @@ impl TreasuryContract {
     }
 
     /// Get treasury ID for an employer.
-    pub fn get_employer_treasury(
-        env: Env,
-        employer: Address,
-    ) -> Result<u64, TreasuryError> {
+    pub fn get_employer_treasury(env: Env, employer: Address) -> Result<u64, TreasuryError> {
         env.storage()
             .persistent()
             .get(&DataKey::EmployerTreasury(employer))
@@ -322,7 +344,6 @@ mod test {
 
         let employer = Address::generate(&env);
 
-        // Create a test token.
         let token_admin = Address::generate(&env);
         let token_contract = env.register_stellar_asset_contract_v2(token_admin.clone());
         let token_addr = token_contract.address();
@@ -353,11 +374,9 @@ mod test {
 
         let id = client.create_treasury(&employer, &token);
 
-        // Deposit.
         let new_balance = client.deposit(&employer, &id, &500_000);
         assert_eq!(new_balance, 500_000);
 
-        // Withdraw.
         let after_withdraw = client.withdraw_from_treasury(&employer, &id, &200_000);
         assert_eq!(after_withdraw, 300_000);
 
@@ -373,13 +392,11 @@ mod test {
         let id = client.create_treasury(&employer, &token);
         client.deposit(&employer, &id, &1_000_000);
 
-        // Allocate for a stream.
         client.allocate_for_stream(&employer, &id, &0_u64, &400_000);
 
         let available = client.get_available_balance(&id);
         assert_eq!(available, 600_000);
 
-        // Release allocation.
         client.release_allocation(&employer, &id, &400_000);
 
         let available_after = client.get_available_balance(&id);
@@ -394,7 +411,6 @@ mod test {
         let id = client.create_treasury(&employer, &token);
         client.deposit(&employer, &id, &100_000);
 
-        // Try to allocate more than available — should panic.
         client.allocate_for_stream(&employer, &id, &0_u64, &200_000);
     }
 }

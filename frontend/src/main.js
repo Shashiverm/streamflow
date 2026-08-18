@@ -1,6 +1,6 @@
 /**
  * StreamFlow — Main Application Entry
- * Real-Time Payroll Streaming on Stellar
+ * Enterprise Real-Time Payroll Streaming & Vesting on Stellar Soroban
  */
 
 import './styles/index.css';
@@ -24,16 +24,23 @@ initRouter();
 // Initialize feedback widget
 renderFeedbackWidget(document.body);
 
-// Track page load performance
-window.addEventListener('load', () => {
-  if (performance?.timing) {
-    const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
-    trackPerformance('page_load', loadTime);
+// Global mobile navigation toggle
+document.addEventListener('click', (e) => {
+  const toggleBtn = e.target.closest('#mobile-menu-toggle');
+  if (toggleBtn) {
+    toggleBtn.classList.toggle('active');
+    const nav = document.getElementById('navbar-nav');
+    if (nav) nav.classList.toggle('active');
+  } else if (e.target.closest('#navbar-nav a')) {
+    const toggleBtn = document.getElementById('mobile-menu-toggle');
+    const nav = document.getElementById('navbar-nav');
+    if (toggleBtn) toggleBtn.classList.remove('active');
+    if (nav) nav.classList.remove('active');
   }
 });
 
 console.log(
-  '%c StreamFlow %c Real-Time Payroll Streaming on Stellar ',
-  'background: linear-gradient(135deg, #4f7df9, #00d4ff); color: white; padding: 4px 8px; border-radius: 4px 0 0 4px; font-weight: bold;',
-  'background: #0c1020; color: #8892b0; padding: 4px 8px; border-radius: 0 4px 4px 0;'
+  '%c StreamFlow %c Real-Time Payroll & Vesting Protocol on Stellar ',
+  'background: linear-gradient(135deg, #10b981, #fbbf24); color: #06080b; padding: 4px 8px; border-radius: 4px 0 0 4px; font-weight: bold;',
+  'background: #0d0f15; color: #00f5a0; padding: 4px 8px; border-radius: 0 4px 4px 0; font-family: monospace;'
 );

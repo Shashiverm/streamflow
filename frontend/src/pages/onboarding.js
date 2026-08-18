@@ -1,7 +1,6 @@
 /**
  * StreamFlow — Onboarding & Multi-Wallet Connection Page
- * Connects Freighter, Albedo (Web & Mobile), xBull, Rabet, Hana,
- * Instant 1-Click Testnet Demo Accounts, and Stellar Secret Keys.
+ * Obsidian & Emerald-Gold Design System
  */
 
 import {
@@ -12,7 +11,6 @@ import {
   truncateAddress,
   CONTRACTS,
   getActiveSecretKey,
-  getConnectedWalletType,
   disconnectWallet,
   isMobileDevice,
 } from '../stellar.js';
@@ -31,14 +29,13 @@ export function renderOnboarding(app) {
   let isFunding = false;
   let selectedRole = localStorage.getItem('streamflow_role') || '';
   let balance = 0;
-  let activeTab = isMobile ? 'mobile' : 'all'; // 'all' | 'mobile' | 'extension' | 'quick'
+  let activeTab = isMobile ? 'mobile' : 'all';
   let secretKeyInput = '';
   let showSecretInput = false;
   let showFreighterModal = false;
   let copiedText = '';
   let walletStatusMap = {};
 
-  // Probe wallet availability
   async function probeWallets() {
     for (const w of SUPPORTED_WALLETS) {
       try {
@@ -50,7 +47,6 @@ export function renderOnboarding(app) {
   }
   probeWallets();
 
-  // If already connected, auto-check balance and jump to step 2
   if (walletAddress) {
     step = 2;
     getAccountBalance(walletAddress)
@@ -69,7 +65,7 @@ export function renderOnboarding(app) {
       <nav class="navbar">
         <div class="container navbar-container">
           <a href="/" data-link class="navbar-brand">
-            <img src="/logo.svg" alt="StreamFlow" width="28" height="28">
+            <img src="/logo.svg" alt="StreamFlow" width="30" height="30">
             <span>Stream<span class="gradient-text">Flow</span></span>
           </a>
           <div class="flex gap-sm align-center">
@@ -77,7 +73,7 @@ export function renderOnboarding(app) {
               <div class="nav-wallet-chip">
                 <span class="dot"></span>
                 <span class="chip-text">${truncateAddress(walletAddress)}</span>
-                <span class="chip-badge">${walletType.toUpperCase()}</span>
+                <span class="badge badge-active" style="font-size: 0.65rem;">${walletType.toUpperCase()}</span>
               </div>
             ` : ''}
             <a href="/" data-link class="btn btn-ghost btn-sm">Home</a>
@@ -85,27 +81,37 @@ export function renderOnboarding(app) {
         </div>
       </nav>
 
-      <div class="onboarding-wrapper">
-        <div class="container" style="max-width: 620px; width: 100%;">
+      <div class="page" style="display: flex; align-items: center; justify-content: center; min-height: 100vh;">
+        <div class="container" style="max-width: 640px; width: 100%;">
           <!-- Progress Stepper -->
-          <div class="stepper mb-md">
-            <div class="step-item ${step >= 1 ? 'active' : ''} ${step > 1 ? 'completed' : ''}">
-              <div class="step-circle">${step > 1 ? '✓' : '1'}</div>
-              <div class="step-title">Connect Wallet</div>
+          <div class="flex flex-between align-center mb-xl" style="position: relative;">
+            <div style="text-align: center; flex: 1;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: ${step >= 1 ? 'var(--grad-primary)' : 'rgba(255,255,255,0.06)'}; color: #06080b; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 4px; box-shadow: ${step >= 1 ? '0 0 16px rgba(0, 245, 160, 0.4)' : 'none'};">
+                ${step > 1 ? '✓' : '1'}
+              </div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: ${step >= 1 ? 'var(--accent-mint)' : 'var(--text-muted)'};">Wallet</div>
             </div>
-            <div class="step-line ${step >= 2 ? 'active' : ''}"></div>
-            <div class="step-item ${step >= 2 ? 'active' : ''} ${step > 2 ? 'completed' : ''}">
-              <div class="step-circle">${step > 2 ? '✓' : '2'}</div>
-              <div class="step-title">Fund & Verify</div>
+
+            <div style="flex: 1; height: 2px; background: ${step >= 2 ? 'var(--accent-mint)' : 'rgba(255,255,255,0.08)'}; margin-top: -18px;"></div>
+
+            <div style="text-align: center; flex: 1;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: ${step >= 2 ? 'var(--grad-primary)' : 'rgba(255,255,255,0.06)'}; color: #06080b; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 4px; box-shadow: ${step >= 2 ? '0 0 16px rgba(0, 245, 160, 0.4)' : 'none'};">
+                ${step > 2 ? '✓' : '2'}
+              </div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: ${step >= 2 ? 'var(--accent-mint)' : 'var(--text-muted)'};">Fund & Verify</div>
             </div>
-            <div class="step-line ${step >= 3 ? 'active' : ''}"></div>
-            <div class="step-item ${step >= 3 ? 'active' : ''}">
-              <div class="step-circle">3</div>
-              <div class="step-title">Select Portal</div>
+
+            <div style="flex: 1; height: 2px; background: ${step >= 3 ? 'var(--accent-mint)' : 'rgba(255,255,255,0.08)'}; margin-top: -18px;"></div>
+
+            <div style="text-align: center; flex: 1;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: ${step >= 3 ? 'var(--grad-primary)' : 'rgba(255,255,255,0.06)'}; color: #06080b; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 4px; box-shadow: ${step >= 3 ? '0 0 16px rgba(0, 245, 160, 0.4)' : 'none'};">
+                3
+              </div>
+              <div style="font-size: 0.78rem; font-weight: 600; color: ${step >= 3 ? 'var(--accent-mint)' : 'var(--text-muted)'};">Select Role</div>
             </div>
           </div>
 
-          <div class="card onboarding-card">
+          <div class="card card-gold" style="padding: var(--space-xl);">
             ${step === 1 ? renderStep1() : ''}
             ${step === 2 ? renderStep2() : ''}
             ${step === 3 ? renderStep3() : ''}
@@ -121,52 +127,52 @@ export function renderOnboarding(app) {
 
   function renderStep1() {
     return `
-      <div class="text-center mb-md">
-        <div class="icon-large mb-xs">🔐</div>
+      <div class="text-center mb-lg" style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: var(--space-xs);">🔐</div>
         <h2>Connect Stellar Wallet</h2>
         <p class="text-muted" style="font-size: 0.9rem;">
-          Choose your preferred wallet to access real Soroban streaming payroll on Stellar Testnet.
+          Connect your Stellar account to access streaming smart contracts on Testnet.
         </p>
       </div>
 
       ${isMobile ? `
-        <div class="mobile-wallet-tip mb-md">
+        <div class="card-flat mb-md" style="padding: var(--space-md); border-color: var(--glass-border-emerald); background: rgba(16, 185, 129, 0.05);">
           <div class="flex align-center gap-xs mb-xs">
             <span style="font-size: 1.2rem;">📱</span>
-            <strong style="font-size: 0.9rem; color: var(--accent-cyan);">Mobile Quick Connect</strong>
+            <strong style="font-size: 0.9rem; color: var(--accent-mint);">Mobile Quick Connect</strong>
           </div>
           <p style="font-size: 0.8rem; margin-bottom: var(--space-sm); color: var(--text-secondary);">
-            For the smoothest experience on mobile web, connect instantly with <strong>Albedo</strong> (in-browser) or generate an <strong>Instant 10,000 XLM Demo Account</strong>.
+            Connect directly in your mobile browser with <strong>Albedo</strong> or generate an instant testnet account.
           </p>
           <div class="grid-2 gap-xs">
             <button class="btn btn-primary btn-sm btn-connect-wallet" data-id="albedo" ${isLoading ? 'disabled' : ''}>
-              ${isLoading && connectingWalletId === 'albedo' ? '<span class="spinner"></span>' : '🌐 Connect Albedo'}
+              ${isLoading && connectingWalletId === 'albedo' ? '<span class="spinner"></span>' : '🌐 Albedo Web'}
             </button>
-            <button class="btn btn-outline btn-sm btn-connect-wallet" data-id="instant" ${isLoading ? 'disabled' : ''}>
-              ${isLoading && connectingWalletId === 'instant' ? '<span class="spinner"></span>' : '⚡ Instant 10k XLM'}
+            <button class="btn btn-gold btn-sm btn-connect-wallet" data-id="instant" ${isLoading ? 'disabled' : ''}>
+              ${isLoading && connectingWalletId === 'instant' ? '<span class="spinner"></span>' : '⚡ 10k XLM Demo'}
             </button>
           </div>
         </div>
       ` : ''}
 
       <!-- Filter Tabs -->
-      <div class="wallet-tabs mb-md">
-        <button class="wallet-tab-btn ${activeTab === 'mobile' ? 'active' : ''}" data-tab="mobile">📱 Mobile & Web</button>
-        <button class="wallet-tab-btn ${activeTab === 'all' ? 'active' : ''}" data-tab="all">All Wallets</button>
-        <button class="wallet-tab-btn ${activeTab === 'extension' ? 'active' : ''}" data-tab="extension">Extensions</button>
-        <button class="wallet-tab-btn ${activeTab === 'quick' ? 'active' : ''}" data-tab="quick">⚡ Instant Demo</button>
+      <div class="tab-group mb-md">
+        <button class="tab-btn ${activeTab === 'mobile' ? 'active' : ''}" data-tab="mobile">📱 Mobile & Web</button>
+        <button class="tab-btn ${activeTab === 'all' ? 'active' : ''}" data-tab="all">All Wallets</button>
+        <button class="tab-btn ${activeTab === 'extension' ? 'active' : ''}" data-tab="extension">Extensions</button>
+        <button class="tab-btn ${activeTab === 'quick' ? 'active' : ''}" data-tab="quick">⚡ Instant Demo</button>
       </div>
 
       <!-- Wallet Options Grid -->
-      <div class="wallet-list flex flex-col gap-sm">
+      <div class="flex flex-col gap-sm">
         ${renderWalletCards()}
       </div>
 
       <!-- Secret Key Accordion -->
       <div class="mt-md pt-sm" style="border-top: 1px solid var(--border-subtle);">
         ${!showSecretInput ? `
-          <button class="btn btn-ghost w-full" id="btn-toggle-secret-input" style="font-size: 0.85rem;">
-            🔑 Or connect with a Stellar Secret Key / Seed
+          <button class="btn btn-ghost w-full" id="btn-toggle-secret-input" style="font-size: 0.85rem; width: 100%;">
+            🔑 Or connect with a Stellar Secret Key
           </button>
         ` : `
           <div class="card-flat" style="padding: var(--space-md); text-align: left;">
@@ -179,15 +185,15 @@ export function renderOnboarding(app) {
             </p>
             <input type="password" class="form-input mono mb-sm" id="input-custom-secret"
               placeholder="S..." value="${secretKeyInput}" autocomplete="off">
-            <button class="btn btn-outline w-full" id="btn-submit-custom-secret" ${isLoading ? 'disabled' : ''}>
-              ${isLoading && connectingWalletId === 'secretKey' ? '<span class="spinner"></span> Verifying Key...' : 'Authorize & Connect Key'}
+            <button class="btn btn-primary w-full" id="btn-submit-custom-secret" ${isLoading ? 'disabled' : ''}>
+              ${isLoading && connectingWalletId === 'secretKey' ? 'Verifying...' : 'Authorize & Connect Key'}
             </button>
           </div>
         `}
       </div>
 
-      <div class="mt-md text-center" style="font-size: 0.75rem; color: var(--text-muted);">
-        🌐 Network: <strong>Stellar Testnet</strong> • 📜 Soroban Stream: <span class="mono">${truncateAddress(CONTRACTS.STREAM)}</span>
+      <div class="mt-md text-center" style="font-size: 0.75rem; color: var(--text-muted); text-align: center;">
+        🌐 Network: <strong style="color: var(--accent-mint);">Stellar Testnet</strong> • 📜 Soroban Stream: <span class="mono">${truncateAddress(CONTRACTS.STREAM)}</span>
       </div>
     `;
   }
@@ -195,46 +201,44 @@ export function renderOnboarding(app) {
   function renderWalletCards() {
     let filtered = SUPPORTED_WALLETS;
     if (activeTab === 'mobile') {
-      filtered = SUPPORTED_WALLETS.filter(w => w.id === 'albedo' || w.id === 'instant' || w.id === 'freighter');
+      filtered = SUPPORTED_WALLETS.filter((w) => w.id === 'albedo' || w.id === 'instant' || w.id === 'freighter');
     } else if (activeTab === 'extension') {
-      filtered = SUPPORTED_WALLETS.filter(w => w.id === 'freighter' || w.id === 'xbull' || w.id === 'rabet' || w.id === 'hana');
+      filtered = SUPPORTED_WALLETS.filter((w) => w.id === 'freighter' || w.id === 'xbull' || w.id === 'rabet' || w.id === 'hana');
     } else if (activeTab === 'quick') {
-      filtered = SUPPORTED_WALLETS.filter(w => w.id === 'instant' || w.id === 'secretKey');
+      filtered = SUPPORTED_WALLETS.filter((w) => w.id === 'instant' || w.id === 'secretKey');
     }
 
-    return filtered.map((w) => {
-      const isAvailable = walletStatusMap[w.id];
-      const isConnectingThis = isLoading && connectingWalletId === w.id;
+    return filtered
+      .map((w) => {
+        const isConnectingThis = isLoading && connectingWalletId === w.id;
 
-      return `
-        <div class="wallet-option-card flex flex-between align-center" data-wallet-id="${w.id}">
+        return `
+        <div class="card-flat flex flex-between align-center" style="padding: var(--space-md); border-color: rgba(255,255,255,0.06); background: rgba(16, 20, 30, 0.6);">
           <div class="flex align-center gap-md" style="flex: 1; min-width: 0;">
-            <div class="wallet-icon-box">${w.icon}</div>
+            <div style="font-size: 1.6rem; width: 44px; height: 44px; border-radius: var(--radius-md); background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center;">
+              ${w.icon}
+            </div>
             <div style="text-align: left; min-width: 0;">
               <div class="flex align-center gap-xs" style="flex-wrap: wrap;">
-                <span class="font-semibold wallet-name">${w.name}</span>
-                <span class="badge ${w.id === 'albedo' || w.id === 'instant' ? 'badge-active' : 'badge-neutral'}" style="font-size: 0.65rem;">
+                <span class="font-bold">${w.name}</span>
+                <span class="badge ${w.id === 'albedo' || w.id === 'instant' ? 'badge-active' : 'badge-cliff'}" style="font-size: 0.65rem;">
                   ${w.badge}
                 </span>
               </div>
-              <p class="wallet-desc text-muted">${w.desc}</p>
+              <p class="text-muted" style="font-size: 0.78rem; margin: 0;">${w.desc}</p>
             </div>
           </div>
 
-          <div class="flex align-center gap-xs wallet-action-area">
-            ${w.installUrl && !isAvailable && w.id !== 'albedo' ? `
-              <a href="${w.installUrl}" target="_blank" class="btn btn-ghost btn-sm wallet-install-link" style="font-size: 0.75rem;">
-                Install ↗
-              </a>
-            ` : ''}
+          <div class="flex align-center gap-xs">
             <button class="btn ${w.id === 'instant' || w.id === 'albedo' ? 'btn-primary' : 'btn-outline'} btn-sm btn-connect-wallet"
               data-id="${w.id}" ${isLoading ? 'disabled' : ''}>
-              ${isConnectingThis ? '<span class="spinner"></span>' : 'Connect'}
+              ${isConnectingThis ? 'Connecting...' : 'Connect'}
             </button>
           </div>
         </div>
       `;
-    }).join('');
+      })
+      .join('');
   }
 
   function renderStep2() {
@@ -242,12 +246,12 @@ export function renderOnboarding(app) {
     const isInstant = walletType === 'instant';
 
     return `
-      <div class="text-center mb-md">
-        <div class="icon-large mb-xs">⚡</div>
+      <div class="text-center mb-md" style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: var(--space-xs);">⚡</div>
         <h2>Wallet Connected</h2>
         <div class="flex flex-center gap-xs mt-xs">
           <span class="badge badge-active">Stellar Testnet</span>
-          <span class="badge badge-neutral">${walletType.toUpperCase()}</span>
+          <span class="badge badge-cliff">${walletType.toUpperCase()}</span>
         </div>
       </div>
 
@@ -261,16 +265,16 @@ export function renderOnboarding(app) {
             ${copiedText === 'address' ? '✓ Copied' : '📋 Copy'}
           </button>
         </div>
-        <div class="mono font-bold" style="color: var(--accent-emerald); font-size: 0.85rem; word-break: break-all; line-height: 1.4;">
+        <div class="mono font-bold" style="color: var(--accent-mint); font-size: 0.88rem; word-break: break-all; line-height: 1.4;">
           ${walletAddress}
         </div>
       </div>
 
       ${isInstant && secret ? `
         <!-- Instant Secret Key Box -->
-        <div class="card-flat mb-md" style="padding: var(--space-md); text-align: left; border-color: rgba(245, 158, 11, 0.3);">
+        <div class="card-flat mb-md" style="padding: var(--space-md); text-align: left; border-color: rgba(251, 191, 36, 0.3); background: rgba(251, 191, 36, 0.04);">
           <div class="flex flex-between align-center mb-xs">
-            <span style="font-size: 0.75rem; color: var(--accent-amber); font-weight: 600;">
+            <span style="font-size: 0.75rem; color: var(--accent-gold); font-weight: 600;">
               🔑 Auto-Generated Secret Key (Demo)
             </span>
             <button class="btn btn-ghost btn-sm" id="btn-copy-secret" style="font-size: 0.75rem; padding: 2px 8px;">
@@ -288,7 +292,7 @@ export function renderOnboarding(app) {
         <div class="flex flex-between align-center">
           <div>
             <span class="text-muted" style="font-size: 0.8rem; display: block;">Available Testnet Balance</span>
-            <span class="mono font-bold" id="account-bal-display" style="color: var(--accent-cyan); font-size: 1.4rem;">
+            <span class="mono font-bold" id="account-bal-display" style="color: var(--accent-gold); font-size: 1.5rem;">
               ${balance.toFixed(2)} XLM
             </span>
           </div>
@@ -301,7 +305,7 @@ export function renderOnboarding(app) {
       <!-- Action Buttons -->
       <div class="flex flex-col gap-sm">
         <button class="btn btn-outline w-full" id="btn-friendbot" ${isFunding ? 'disabled' : ''}>
-          ${isFunding ? '<span class="spinner"></span> Requesting 10,000 XLM...' : '💧 Fund 10,000 Testnet XLM (Friendbot)'}
+          ${isFunding ? 'Requesting 10,000 XLM...' : '💧 Fund 10,000 Testnet XLM (Friendbot)'}
         </button>
 
         <button class="btn btn-primary btn-lg w-full" id="btn-go-roles">
@@ -322,31 +326,31 @@ export function renderOnboarding(app) {
 
   function renderStep3() {
     return `
-      <div class="text-center mb-md">
-        <div class="icon-large mb-xs">💼</div>
+      <div class="text-center mb-md" style="text-align: center;">
+        <div style="font-size: 2rem; margin-bottom: var(--space-xs);">💼</div>
         <h2>Select Your Portal</h2>
         <p class="text-muted" style="font-size: 0.9rem;">
-          Select how you want to interact with StreamFlow using <span class="mono text-accent">${truncateAddress(walletAddress)}</span>.
+          Select how you want to use StreamFlow with <span class="mono" style="color: var(--accent-mint);">${truncateAddress(walletAddress)}</span>.
         </p>
       </div>
 
-      <div class="role-selector mb-lg">
-        <div class="role-option ${selectedRole === 'employer' ? 'selected' : ''}" data-role="employer">
-          <div class="role-icon">🏢</div>
+      <div class="grid-2 gap-md mb-lg">
+        <div class="card-flat role-option ${selectedRole === 'employer' ? 'active' : ''}" data-role="employer" style="padding: var(--space-lg); cursor: pointer; border: 2px solid ${selectedRole === 'employer' ? 'var(--accent-mint)' : 'rgba(255,255,255,0.08)'}; background: ${selectedRole === 'employer' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(16, 20, 30, 0.6)'};">
+          <div style="font-size: 2rem; margin-bottom: var(--space-xs);">🏢</div>
           <h3 style="font-size: 1.1rem; margin-bottom: 4px;">Employer Portal</h3>
-          <p style="font-size: 0.8rem;" class="text-muted">
-            Create real-time Soroban payroll streams, top-up balances, manage corporate treasury.
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
+            Batch payroll creation, cliff vesting schedules, treasury vaults, and stream orchestration.
           </p>
-          <div class="role-tag">Manage Payroll</div>
+          <span class="badge badge-active">Manage Payroll</span>
         </div>
 
-        <div class="role-option ${selectedRole === 'employee' ? 'selected' : ''}" data-role="employee">
-          <div class="role-icon">👷</div>
+        <div class="card-flat role-option ${selectedRole === 'employee' ? 'active' : ''}" data-role="employee" style="padding: var(--space-lg); cursor: pointer; border: 2px solid ${selectedRole === 'employee' ? 'var(--accent-gold)' : 'rgba(255,255,255,0.08)'}; background: ${selectedRole === 'employee' ? 'rgba(251, 191, 36, 0.08)' : 'rgba(16, 20, 30, 0.6)'};">
+          <div style="font-size: 2rem; margin-bottom: var(--space-xs);">👷</div>
           <h3 style="font-size: 1.1rem; margin-bottom: 4px;">Employee Portal</h3>
-          <p style="font-size: 0.8rem;" class="text-muted">
-            Watch salary accrue second-by-second, withdraw instantly, offramp via SEP-24 anchors.
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
+            Watch continuous accrual, execute 1-click batch claims, migrate payout wallets, and off-ramp.
           </p>
-          <div class="role-tag">Accrue & Withdraw</div>
+          <span class="badge badge-cliff">Accrue & Claim</span>
         </div>
       </div>
 
@@ -364,71 +368,37 @@ export function renderOnboarding(app) {
   function renderFreighterMobileModal() {
     const currentUrl = window.location.href;
     return `
-      <div class="modal-overlay" id="freighter-modal-overlay">
-        <div class="modal" style="max-width: 520px; text-align: left;">
+      <div class="modal-backdrop" id="freighter-modal-overlay">
+        <div class="modal-content">
           <div class="modal-header">
             <div class="flex align-center gap-xs">
               <span style="font-size: 1.3rem;">🦊</span>
-              <h3 style="margin: 0; font-size: 1.1rem;">Freighter Mobile on Phone</h3>
+              <h3 style="margin: 0; font-size: 1.1rem;">Freighter Mobile</h3>
             </div>
             <button class="modal-close" id="btn-close-freighter-modal">&times;</button>
           </div>
 
           <div class="mb-md">
             <p style="font-size: 0.85rem; color: var(--text-primary); margin-bottom: 6px;">
-              Because Freighter is installed as an app on your phone, external mobile Chrome/Safari cannot access its wallet keys directly.
-            </p>
-            <p style="font-size: 0.8rem; color: var(--text-secondary);">
-              Choose how you would like to proceed:
+              To use Freighter on mobile, open this URL inside the Freighter App DApp Browser.
             </p>
           </div>
 
           <div class="flex flex-col gap-sm mb-md">
-            <!-- Option 1: Open in Freighter DApp Browser -->
-            <div class="card-flat" style="padding: var(--space-md); border: 1px solid rgba(79, 125, 249, 0.35); background: rgba(79, 125, 249, 0.08);">
-              <div class="flex flex-between align-center mb-xs">
-                <span class="badge badge-active" style="font-size: 0.68rem;">Option 1 — Native App</span>
-                <span class="text-muted" style="font-size: 0.72rem;">Freighter In-App Browser</span>
-              </div>
-              <strong style="font-size: 0.88rem; display: block; margin-bottom: 4px;">Open inside Freighter App Browser</strong>
-              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
-                Copy this URL, open your Freighter App, tap the <strong>Browser 🌐</strong> tab, and paste the URL.
-              </p>
-              <div class="flex gap-xs">
-                <input type="text" readonly class="form-input mono" style="font-size: 0.78rem; padding: 6px 10px;" value="${currentUrl}" id="freighter-dapp-url">
-                <button class="btn btn-primary btn-sm" id="btn-copy-dapp-url" style="white-space: nowrap;">
-                  📋 Copy URL
+            <div class="card-flat" style="padding: var(--space-md); border-color: var(--glass-border-emerald); background: rgba(16, 185, 129, 0.06);">
+              <span class="badge badge-active mb-xs" style="font-size: 0.68rem;">Freighter Browser</span>
+              <div class="flex gap-xs mt-xs">
+                <input type="text" readonly class="form-input mono" style="font-size: 0.78rem;" value="${currentUrl}" id="freighter-dapp-url">
+                <button class="btn btn-primary btn-sm" id="btn-copy-dapp-url">
+                  📋 Copy
                 </button>
               </div>
             </div>
 
-            <!-- Option 2: Connect via Albedo in Browser -->
-            <div class="card-flat" style="padding: var(--space-md); border: 1px solid rgba(0, 200, 150, 0.35); background: rgba(0, 200, 150, 0.06);">
-              <div class="flex flex-between align-center mb-xs">
-                <span class="badge badge-success" style="font-size: 0.68rem;">Option 2 — Instant In-Browser</span>
-                <span class="text-success" style="font-size: 0.72rem;">Recommended for Chrome</span>
-              </div>
-              <strong style="font-size: 0.88rem; display: block; margin-bottom: 4px;">Connect with Albedo (No app switch)</strong>
-              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
-                Opens a secure popup tab right here in Chrome/Safari to connect and sign with Stellar keys.
-              </p>
-              <button class="btn btn-success btn-sm w-full btn-connect-wallet" data-id="albedo">
+            <div class="card-flat" style="padding: var(--space-md); border-color: var(--glass-border-gold); background: rgba(251, 191, 36, 0.06);">
+              <span class="badge badge-cliff mb-xs" style="font-size: 0.68rem;">In-Browser Alternative</span>
+              <button class="btn btn-gold btn-sm w-full btn-connect-wallet mt-xs" data-id="albedo">
                 🌐 Connect via Albedo Now
-              </button>
-            </div>
-
-            <!-- Option 3: Instant 10,000 XLM Demo -->
-            <div class="card-flat" style="padding: var(--space-md); border: 1px solid rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.06);">
-              <div class="flex flex-between align-center mb-xs">
-                <span class="badge badge-warning" style="font-size: 0.68rem;">Option 3 — 1-Click Demo</span>
-                <span class="text-warning" style="font-size: 0.72rem;">Auto-Funded 10,000 XLM</span>
-              </div>
-              <strong style="font-size: 0.88rem; display: block; margin-bottom: 4px;">1-Click Instant Testnet Account</strong>
-              <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: var(--space-sm);">
-                Generates a testnet keypair and funds it with 10,000 XLM immediately for testing.
-              </p>
-              <button class="btn btn-outline btn-sm w-full btn-connect-wallet" data-id="instant">
-                ⚡ Generate Instant 10k XLM Account
               </button>
             </div>
           </div>
@@ -442,15 +412,13 @@ export function renderOnboarding(app) {
   }
 
   function attachListeners() {
-    // Tab switching
-    document.querySelectorAll('.wallet-tab-btn').forEach((btn) => {
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
         activeTab = btn.dataset.tab;
         render();
       });
     });
 
-    // Wallet connect triggers
     document.querySelectorAll('.btn-connect-wallet').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
         e.stopPropagation();
@@ -463,7 +431,6 @@ export function renderOnboarding(app) {
           return;
         }
 
-        // On mobile, if user clicks Freighter and window.freighterApi is not injected in this browser:
         if (walletId === 'freighter' && isMobile && (typeof window === 'undefined' || !window.freighterApi)) {
           showFreighterModal = true;
           render();
@@ -483,7 +450,7 @@ export function renderOnboarding(app) {
           isLoading = false;
           connectingWalletId = null;
           showFreighterModal = false;
-          showToast(`Connected successfully via ${walletId.toUpperCase()}!`, 'success');
+          showToast(`Connected via ${walletId.toUpperCase()}!`, 'success');
           render();
         } catch (err) {
           isLoading = false;
@@ -499,7 +466,6 @@ export function renderOnboarding(app) {
       });
     });
 
-    // Freighter modal listeners
     document.getElementById('btn-close-freighter-modal')?.addEventListener('click', () => {
       showFreighterModal = false;
       render();
@@ -521,11 +487,10 @@ export function renderOnboarding(app) {
       const urlInput = document.getElementById('freighter-dapp-url');
       if (urlInput) {
         navigator.clipboard.writeText(urlInput.value);
-        showToast('URL copied! Open Freighter App > Browser tab and paste URL.', 'success');
+        showToast('URL copied!', 'success');
       }
     });
 
-    // Secret Key Toggle
     document.getElementById('btn-toggle-secret-input')?.addEventListener('click', () => {
       showSecretInput = true;
       render();
@@ -536,11 +501,10 @@ export function renderOnboarding(app) {
       render();
     });
 
-    // Submit Secret Key
     document.getElementById('btn-submit-custom-secret')?.addEventListener('click', async () => {
       const input = document.getElementById('input-custom-secret')?.value;
       if (!input) {
-        showToast('Please enter a valid 56-char Stellar secret key starting with S.', 'error');
+        showToast('Please enter a valid Stellar secret key starting with S.', 'error');
         return;
       }
 
@@ -566,7 +530,6 @@ export function renderOnboarding(app) {
       }
     });
 
-    // Copy address button
     document.getElementById('btn-copy-address')?.addEventListener('click', () => {
       if (walletAddress) {
         navigator.clipboard.writeText(walletAddress);
@@ -579,7 +542,6 @@ export function renderOnboarding(app) {
       }
     });
 
-    // Copy secret button
     document.getElementById('btn-copy-secret')?.addEventListener('click', () => {
       const secret = getActiveSecretKey();
       if (secret) {
@@ -593,7 +555,6 @@ export function renderOnboarding(app) {
       }
     });
 
-    // Refresh balance
     document.getElementById('btn-refresh-balance')?.addEventListener('click', async () => {
       if (!walletAddress) return;
       try {
@@ -601,13 +562,12 @@ export function renderOnboarding(app) {
         balance = bal.xlm;
         const balEl = document.getElementById('account-bal-display');
         if (balEl) balEl.textContent = `${balance.toFixed(2)} XLM`;
-        showToast('Balance updated!', 'info');
+        showToast('Balance updated!', 'success');
       } catch {
         showToast('Could not fetch balance.', 'error');
       }
     });
 
-    // Friendbot Funding
     document.getElementById('btn-friendbot')?.addEventListener('click', async () => {
       if (!walletAddress) return;
       isFunding = true;
@@ -617,7 +577,7 @@ export function renderOnboarding(app) {
         const bal = await getAccountBalance(walletAddress);
         balance = bal.xlm;
         isFunding = false;
-        showToast('Account successfully funded with 10,000 Testnet XLM!', 'success');
+        showToast('Account funded with 10,000 Testnet XLM!', 'success');
         render();
       } catch (err) {
         isFunding = false;
@@ -626,19 +586,16 @@ export function renderOnboarding(app) {
       }
     });
 
-    // Continue to roles
     document.getElementById('btn-go-roles')?.addEventListener('click', () => {
       step = 3;
       render();
     });
 
-    // Switch / change wallet
     document.getElementById('btn-change-wallet')?.addEventListener('click', () => {
       step = 1;
       render();
     });
 
-    // Disconnect
     document.getElementById('btn-disconnect')?.addEventListener('click', () => {
       disconnectWallet();
       walletAddress = '';
@@ -647,7 +604,6 @@ export function renderOnboarding(app) {
       render();
     });
 
-    // Role options selection
     document.querySelectorAll('.role-option').forEach((el) => {
       el.addEventListener('click', () => {
         selectedRole = el.dataset.role;
@@ -657,7 +613,6 @@ export function renderOnboarding(app) {
       });
     });
 
-    // Launch Dashboard
     document.getElementById('btn-launch-dashboard')?.addEventListener('click', () => {
       if (!selectedRole) {
         showToast('Please select either Employer or Employee portal.', 'error');
@@ -667,7 +622,6 @@ export function renderOnboarding(app) {
       navigate(selectedRole === 'employer' ? '/employer' : '/employee');
     });
 
-    // Back to step 2
     document.getElementById('btn-back-step2')?.addEventListener('click', () => {
       step = 2;
       render();
@@ -681,8 +635,8 @@ function showToast(msg, type) {
   const container = document.getElementById('toast-container');
   if (!container) return;
   const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
+  toast.className = `toast ${type === 'error' ? 'error' : 'success'}`;
   toast.textContent = msg;
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 4500);
+  setTimeout(() => toast.remove(), 4000);
 }

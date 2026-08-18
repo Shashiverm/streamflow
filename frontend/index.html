@@ -1,17 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" prefix="og: https://ogp.me/ns#">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="StreamFlow — Real-time payroll streaming on Stellar. Employees earn every second, withdraw anytime. No more waiting for payday.">
-  <meta name="theme-color" content="#06080f">
-  <title>StreamFlow — Real-Time Payroll Streaming</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  
+  <!-- Primary Meta Tags -->
+  <title>StreamFlow — Enterprise Real-Time Payroll Streaming & Cliff Vesting on Stellar</title>
+  <meta name="title" content="StreamFlow — Enterprise Real-Time Payroll Streaming & Cliff Vesting on Stellar">
+  <meta name="description" content="StreamFlow is the high-performance decentralized payroll protocol built on Stellar Soroban. Stream multi-token salaries (XLM, USDC, EURC) continuously every second with batch operations, milestone cliff vesting, and instant anchor off-ramps.">
+  <meta name="keywords" content="Stellar, Soroban, Smart Contracts, Streaming Payroll, Real-Time Finance, Crypto Payroll, Cliff Vesting, SEP-24, XLM, USDC, Web3 Payroll, Continuous Settlement">
+  <meta name="author" content="StreamFlow Protocol">
+  <meta name="robots" content="index, follow">
+  <meta name="theme-color" content="#07080b">
+  <meta name="color-scheme" content="dark">
+  <link rel="canonical" href="https://streamflow-lilac-six.vercel.app/">
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://streamflow-lilac-six.vercel.app/">
+  <meta property="og:title" content="StreamFlow — Enterprise Real-Time Payroll Streaming on Stellar">
+  <meta property="og:description" content="Eliminate archaic monthly paydays. Stream salaries every second with batch disbursals, cliff vesting, and non-custodial treasury vaults on Stellar Soroban.">
+  <meta property="og:image" content="/logo.svg">
+  <meta property="og:site_name" content="StreamFlow">
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://streamflow-lilac-six.vercel.app/">
+  <meta property="twitter:title" content="StreamFlow — Continuous Payroll Streaming on Stellar">
+  <meta property="twitter:description" content="Stream multi-token wages continuously every millisecond with sub-cent gas fees and instant global anchor off-ramps.">
+  <meta property="twitter:image" content="/logo.svg">
+
+  <!-- Favicons & App Icons -->
   <link rel="icon" type="image/svg+xml" href="/logo.svg">
+  <link rel="apple-touch-icon" href="/logo.svg">
+
+  <!-- JSON-LD Structured Data for Advanced SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebApplication",
+        "@id": "https://streamflow-lilac-six.vercel.app/#webapp",
+        "name": "StreamFlow",
+        "url": "https://streamflow-lilac-six.vercel.app/",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript and HTML5 support",
+        "description": "High-performance real-time payroll streaming and cliff vesting protocol on Stellar Soroban smart contracts.",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": "https://streamflow-lilac-six.vercel.app/#organization",
+        "name": "StreamFlow Protocol",
+        "url": "https://streamflow-lilac-six.vercel.app/",
+        "logo": "https://streamflow-lilac-six.vercel.app/logo.svg",
+        "sameAs": [
+          "https://github.com/Shashiverm/streamflow",
+          "https://stellar.expert/explorer/testnet/contract/CBFFR6AVRP5W4GETTCYU774MIWXWUO73MYYMAUPFQBB4QGWOCMZXEJAQ"
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
   <div id="app"></div>
   <div id="toast-container" class="toast-container"></div>
-  <div class="grid-bg"></div>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

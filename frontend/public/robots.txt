@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://streamflow-lilac-six.vercel.app/sitemap.xml
