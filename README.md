@@ -89,44 +89,45 @@ StreamFlow is a real-time payroll streaming platform built on the **Stellar bloc
 
 ### Stream Contract
 
-The core payroll stream. Stores per-stream state and computes accrued balances on demand via checkpoint-based math.
+The core payroll and vesting stream contract. Stores per-stream state, supports milestone cliffs, and computes accrued balances on demand via checkpoint-based math with event indexing.
 
 | Function | Description |
 |----------|-------------|
-| `create_stream` | Create and fund a new payroll stream |
+| `create_stream` | Create and fund a standard payroll stream |
+| `create_stream_with_cliff` | Create and fund a stream with a custom cliff vesting unlock schedule |
+| `batch_create_streams` | **Enterprise Batch Creation**: Fund and deploy multiple streams in 1 atomic call |
 | `withdraw` | Employee withdraws up to accrued balance |
-| `cancel_stream` | Pro-rata settlement: pay employee, refund employer |
-| `pause_stream` | Pause accrual (employer only) |
-| `resume_stream` | Resume accrual after pause |
-| `top_up` | Add funds and extend stream duration |
-| `get_accrued` | Compute current accrued-but-unwithdrawn balance |
-| `get_stream` | Read full stream details |
-| `get_employer_streams` | List all streams by employer |
-| `get_employee_streams` | List all streams by employee |
+| `batch_withdraw` | **1-Click Batch Claim**: Employee withdraws accrued funds across multiple streams |
+| `cancel_stream` | Pro-rata settlement: pay employee earned wages, refund employer remaining balance |
+| `batch_cancel_streams` | Batch cancel and settle multiple payroll streams simultaneously |
+| `pause_stream` / `batch_pause_streams` | Pause accrual for one or multiple streams (employer only) |
+| `resume_stream` / `batch_resume_streams` | Resume accrual after pause |
+| `top_up` / `batch_top_up` | Add funds and extend duration for single or batch streams |
+| `transfer_recipient` | **Wallet Key Migration**: Employee transfers stream rights to a new wallet address |
+| `get_accrued` | Compute current unlocked accrued balance (accounting for cliff periods) |
+| `get_employer_streams_paginated` | Bounded pagination query for employer stream lists |
+| `get_employee_streams_paginated` | Bounded pagination query for employee stream lists |
+| `env.events().publish(...)` | **Native Event Indexing**: Emits `create`, `withdraw`, `cancel`, `pause`, `resume`, `topup`, and `transfer` |
 
-**Accrual formula:**
+**Accrual formula (with Cliff):**
 ```
-accrued = rate_per_second × (min(now, end_time) - start_time - paused_duration) - withdrawn
+accrued = if now < cliff_time { 0 } else { rate_per_second × (min(now, end_time) - start_time - paused_duration) - withdrawn }
 ```
-
-**WASM size:** 13,250 bytes (optimized)
 
 ### Treasury Contract
 
-Pooled employer funding for batch stream management.
+Pooled employer funding vault for batch stream management and event-driven allocation.
 
 | Function | Description |
 |----------|-------------|
-| `create_treasury` | Create a new employer treasury |
+| `create_treasury` | Create a new employer treasury vault |
 | `deposit` | Deposit funds into treasury |
-| `withdraw_from_treasury` | Withdraw unallocated funds |
+| `withdraw_from_treasury` | Withdraw unallocated liquidity |
 | `allocate_for_stream` | Reserve funds for a stream |
 | `release_allocation` | Free allocation when stream ends |
 | `get_treasury` | Read treasury details |
-| `get_available_balance` | Unallocated balance |
+| `get_available_balance` | Unallocated liquid balance |
 | `get_employer_treasury` | Lookup treasury by employer |
-
-**WASM size:** 8,253 bytes (optimized)
 
 ### Contract Deployment
 

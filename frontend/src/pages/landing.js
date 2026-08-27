@@ -1,6 +1,5 @@
 /**
  * StreamFlow — Landing Page
- * Next-Gen Real-Time Streaming Payroll, Enterprise Scaling & Vesting on Stellar Soroban
  */
 
 import { trackPageView } from '../analytics.js';
@@ -11,32 +10,28 @@ export function renderLanding(app) {
 
   let streamedAmount = 487619.20;
   let animFrame;
-  let activeModal = null; // 'privacy' | 'terms' | 'security' | null
+  let activeModal = null;
 
-  // Interactive Live Simulator state
+  // Simulator state
   let simSalary = 6500;
   let sessionAccrued = 0;
 
-  // Interactive Enterprise ROI Calculator state
+  // ROI calculator state
   let enterpriseTeamSize = 45;
   let enterpriseAvgSalary = 5000;
 
   function calculateROI(teamSize, avgSalary) {
-    const monthlyTraditionalWireFees = teamSize * 35; // $35 per international wire
-    const monthlyTraditionalFX = (teamSize * avgSalary) * 0.022; // 2.2% bank FX spread & intermediary fees
-    const monthlyTraditionalTotal = monthlyTraditionalWireFees + monthlyTraditionalFX;
-    const annualTraditionalCost = monthlyTraditionalTotal * 12;
-
-    const monthlyStellarGas = teamSize * 0.00001 * 0.12; // < $0.0001
-    const annualStellarCost = monthlyStellarGas * 12;
-    const annualSavings = annualTraditionalCost - annualStellarCost;
-
+    const monthlyWireFees = teamSize * 35;
+    const monthlyFX = (teamSize * avgSalary) * 0.022;
+    const monthlyTotal = monthlyWireFees + monthlyFX;
+    const annualCost = monthlyTotal * 12;
+    const stellarCost = teamSize * 0.00001 * 0.12 * 12;
     return {
-      monthlyTraditionalWireFees,
-      monthlyTraditionalFX,
-      monthlyTraditionalTotal,
-      annualTraditionalCost,
-      annualSavings,
+      monthlyWireFees,
+      monthlyFX,
+      monthlyTotal,
+      annualCost,
+      annualSavings: annualCost - stellarCost,
     };
   }
 
@@ -44,11 +39,10 @@ export function renderLanding(app) {
     const roi = calculateROI(enterpriseTeamSize, enterpriseAvgSalary);
 
     app.innerHTML = `
-      <!-- ─── Navbar ─── -->
       <nav class="navbar">
         <div class="container navbar-container">
           <a href="/" data-link class="navbar-brand">
-            <img src="/logo.svg" alt="StreamFlow Logo" width="32" height="32">
+            <img src="/logo.svg" alt="StreamFlow" width="32" height="32">
             <span>Stream<span class="gradient-text">Flow</span></span>
           </a>
           <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle navigation">
@@ -56,194 +50,188 @@ export function renderLanding(app) {
           </button>
           <ul class="navbar-nav" id="navbar-nav">
             <li><a href="#features">Features</a></li>
-            <li><a href="#enterprise">Enterprise Scaling</a></li>
-            <li><a href="#simulator">Live Simulator</a></li>
-            <!--<li><a href="https://developers.stellar.org/docs/learn/smart-contract-internals" target="_blank" rel="noopener noreferrer">Docs ↗</a></li> -->
-            <li><a href="/onboarding" data-link class="btn btn-primary btn-sm">Launch Protocol</a></li>
+            <li><a href="#enterprise">Savings</a></li>
+            <li><a href="#simulator">Calculator</a></li>
+            <li><a href="/onboarding" data-link class="btn btn-primary btn-sm">Open App</a></li>
           </ul>
         </div>
       </nav>
 
-      <!-- ─── Hero Section ─── -->
+      <!-- Hero -->
       <section class="page" style="padding-top: calc(68px + var(--space-2xl)); text-align: center; position: relative;">
         <div class="container">
-          <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: var(--radius-full); background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3); font-size: 0.85rem; font-weight: 600; color: var(--accent-mint); margin-bottom: var(--space-lg); box-shadow: 0 0 20px rgba(0, 245, 160, 0.15);">
-            <span>✦</span>
-            <span>Stellar Soroban Next-Gen Payroll & Cliff Vesting</span>
-            <span>✦</span>
+          <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: var(--radius-full); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.20); font-size: 0.82rem; font-weight: 600; color: var(--accent-mint); margin-bottom: var(--space-lg);">
+            Built on Stellar Soroban
           </div>
 
-          <h1 style="max-width: 900px; margin: 0 auto var(--space-md); font-weight: 900; letter-spacing: -0.03em;">
-            Continuous Payroll That <br>
-            <span class="gradient-text">Streams Every Second</span>
+          <h1 style="max-width: 800px; margin: 0 auto var(--space-md); font-weight: 900; letter-spacing: -0.03em;">
+            Payroll that streams <br>
+            <span class="gradient-text">every second</span>
           </h1>
 
-          <p style="max-width: 680px; margin: 0 auto var(--space-xl); font-size: 1.15rem; color: var(--text-secondary);">
-            Eliminate archaic monthly paydays. StreamFlow enables global enterprises to disburse multi-token salaries in real-time, while employees claim accrued earnings instantaneously on Stellar.
+          <p style="max-width: 620px; margin: 0 auto var(--space-xl); font-size: 1.1rem; color: var(--text-secondary);">
+            Stop waiting for payday. StreamFlow lets employers run continuous payroll on-chain — employees withdraw what they've earned, whenever they want.
           </p>
 
           <div class="flex flex-center gap-md flex-wrap mb-2xl" style="margin-bottom: 44px; position: relative; z-index: 2;">
             <a href="/onboarding" data-link class="btn btn-primary btn-lg">
-              ⚡ Enter App & Connect Wallet
+              Connect Wallet
             </a>
             <a href="#simulator" class="btn btn-outline btn-lg">
-              Interactive Calculator ↓
+              Try the Calculator
             </a>
           </div>
 
-          <!-- Hero Stats Banner -->
+          <!-- Stats -->
           <div class="grid-4 gap-md mb-3xl">
             <div class="card stat-card card-gold">
               <div class="stat-header">
-                <span class="stat-label">Total Value Streamed</span>
-                <div class="stat-icon gold">💰</div>
+                <span class="stat-label">Total Streamed</span>
+                <div class="stat-icon gold">$</div>
               </div>
-              <div class="stat-value gold-text" id="streaming-counter">$487,619.20</div>
+              <div class="stat-value gold-text" id="streaming-counter">$487,619</div>
             </div>
 
             <div class="card stat-card">
               <div class="stat-header">
-                <span class="stat-label">Settlement Latency</span>
-                <div class="stat-icon">⚡</div>
+                <span class="stat-label">Settlement Time</span>
+                <div class="stat-icon">~</div>
               </div>
-              <div class="stat-value streaming">0.000s</div>
+              <div class="stat-value streaming">< 5 sec</div>
             </div>
 
             <div class="card stat-card">
               <div class="stat-header">
-                <span class="stat-label">Average Gas Fee</span>
-                <div class="stat-icon">🪙</div>
+                <span class="stat-label">Avg. Gas Fee</span>
+                <div class="stat-icon">$</div>
               </div>
-              <div class="stat-value" style="color: var(--accent-mint);">&lt; $0.00001</div>
+              <div class="stat-value" style="color: var(--accent-mint);">< $0.001</div>
             </div>
 
             <div class="card stat-card card-gold">
               <div class="stat-header">
-                <span class="stat-label">Enterprise Scaling</span>
-                <div class="stat-icon gold">🚀</div>
+                <span class="stat-label">Batch Capacity</span>
+                <div class="stat-icon gold">+</div>
               </div>
-              <div class="stat-value" style="color: var(--accent-gold);">Batch 1k+</div>
+              <div class="stat-value" style="color: var(--accent-gold);">1,000+</div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ─── Core Architecture & Features ─── -->
+      <!-- Features -->
       <section class="page" id="features" style="padding: var(--space-2xl) 0;">
         <div class="container">
           <div class="text-center mb-2xl" style="text-align: center;">
-            <div class="badge badge-active mb-sm">Architecture</div>
-            <h2>Why Elite Web3 Teams Choose <span class="gradient-text">StreamFlow</span></h2>
-            <p class="text-muted" style="max-width: 600px; margin: var(--space-xs) auto 0;">Engineered from first principles for high throughput, sub-cent fees, and mathematical fairness.</p>
+            <div class="badge badge-active mb-sm">How it works</div>
+            <h2>Built for real payroll, <span class="gradient-text">not demos</span></h2>
+            <p class="text-muted" style="max-width: 560px; margin: var(--space-xs) auto 0;">Every feature is backed by deployed Soroban smart contracts with unit tests and on-chain verification.</p>
           </div>
 
           <div class="grid-3 gap-lg">
             <div class="card" style="padding: var(--space-xl);">
-              <div class="stat-icon mb-md">⏱️</div>
-              <h3 class="mb-sm">Real-Time Accrual</h3>
-              <p>Salaries accumulate on-chain every millisecond. Workers withdraw earned income whenever needed without waiting for monthly wire transfers.</p>
+              <div class="stat-icon mb-md">$</div>
+              <h3 class="mb-sm">Per-second accrual</h3>
+              <p>Salaries accrue on-chain continuously. Workers withdraw earned income anytime without waiting for monthly payroll runs.</p>
             </div>
 
             <div class="card card-gold" style="padding: var(--space-xl);">
-              <div class="stat-icon gold mb-md">🔒</div>
-              <h3 class="mb-sm">Cliff & Vesting Schedules</h3>
-              <p>Native smart contract vesting schedules. Define custom lockups and cliff intervals for token grants, executive compensation, and retention.</p>
+              <div class="stat-icon gold mb-md">#</div>
+              <h3 class="mb-sm">Cliff vesting</h3>
+              <p>Define custom lockup periods directly in the smart contract. Tokens stay locked until the cliff elapses — no workarounds needed.</p>
             </div>
 
             <div class="card" style="padding: var(--space-xl);">
-              <div class="stat-icon mb-md">📦</div>
-              <h3 class="mb-sm">Enterprise Batch Payroll</h3>
-              <p>Upload CSV spreadsheets or disbursement rosters to stream to hundreds of contractors and employees in one atomic transaction.</p>
+              <div class="stat-icon mb-md">+</div>
+              <h3 class="mb-sm">Batch payroll</h3>
+              <p>Upload a CSV or paste a roster to create hundreds of streams in one atomic transaction. One signature, done.</p>
             </div>
 
             <div class="card" style="padding: var(--space-xl);">
-              <div class="stat-icon mb-md">🏛️</div>
-              <h3 class="mb-sm">Pooled Treasury Vaults</h3>
-              <p>Fund dedicated employer treasuries once. Auto-allocate capital to active streams while keeping unallocated liquidity safe and withdrawable.</p>
+              <div class="stat-icon mb-md">V</div>
+              <h3 class="mb-sm">Treasury vaults</h3>
+              <p>Fund a dedicated employer treasury once. Capital gets allocated to active streams while the rest stays liquid and withdrawable.</p>
             </div>
 
             <div class="card card-gold" style="padding: var(--space-xl);">
-              <div class="stat-icon gold mb-md">🔑</div>
-              <h3 class="mb-sm">Wallet Key Migration</h3>
-              <p>Seamless recipient address migration. Employees can rotate hardware keys or smart accounts without cancelling ongoing streaming grants.</p>
+              <div class="stat-icon gold mb-md">K</div>
+              <h3 class="mb-sm">Key migration</h3>
+              <p>Employees can rotate wallet addresses without cancelling streams. Useful for hardware key upgrades or team account changes.</p>
             </div>
 
             <div class="card" style="padding: var(--space-xl);">
-              <div class="stat-icon mb-md">📊</div>
-              <h3 class="mb-sm">Audit-Ready Reporting</h3>
-              <p>One-click CSV exports of all streaming ledger logs and transactions for effortless compliance, tax reporting, and corporate accounting.</p>
+              <div class="stat-icon mb-md">D</div>
+              <h3 class="mb-sm">CSV exports</h3>
+              <p>One-click download of all stream data and transaction audit trails for compliance, tax filing, or accounting.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ─── Enterprise Scaling Section ─── -->
+      <!-- Enterprise Savings -->
       <section class="page" id="enterprise" style="padding: var(--space-2xl) 0; position: relative;">
         <div class="container">
           <div class="text-center mb-2xl" style="text-align: center;">
-            <div class="badge badge-cliff mb-sm">Enterprise Scaling</div>
-            <h2>Built for Global Rosters & <span class="gold-text">Massive Throughput</span></h2>
-            <p class="text-muted" style="max-width: 680px; margin: var(--space-xs) auto 0;">
-              Scale payroll from 5 to 5,000+ contractors worldwide without increasing operational headcount or banking overhead.
+            <div class="badge badge-cliff mb-sm">Cost comparison</div>
+            <h2>How much are you spending on <span class="gold-text">wire fees?</span></h2>
+            <p class="text-muted" style="max-width: 620px; margin: var(--space-xs) auto 0;">
+              International payroll through banks costs $35+ per wire plus 2-3% FX spread. On Stellar it's a fraction of a cent.
             </p>
           </div>
 
-          <!-- Enterprise Pillars -->
+          <!-- Pillars -->
           <div class="grid-3 gap-lg mb-2xl">
             <div class="card card-gold" style="padding: var(--space-lg);">
               <div class="flex align-center gap-xs mb-sm">
-                <span style="font-size: 1.3rem;">⚡</span>
-                <strong style="color: var(--accent-gold); font-size: 1.05rem;">Atomic Batch Dispatch</strong>
+                <strong style="color: var(--accent-gold); font-size: 1.05rem;">Batch dispatch</strong>
               </div>
               <p style="font-size: 0.88rem; color: var(--text-secondary);">
-                Deploy hundreds of payment streams in a single Soroban smart contract call. Reduce gas footprint by 94% and eliminate multi-transaction delays.
+                Deploy hundreds of payment streams in a single contract call. Reduces gas footprint by ~94% compared to individual transactions.
               </p>
             </div>
 
             <div class="card" style="padding: var(--space-lg);">
               <div class="flex align-center gap-xs mb-sm">
-                <span style="font-size: 1.3rem;">🏦</span>
-                <strong style="color: var(--accent-mint); font-size: 1.05rem;">Non-Custodial Reserves</strong>
+                <strong style="color: var(--accent-mint); font-size: 1.05rem;">Non-custodial</strong>
               </div>
               <p style="font-size: 0.88rem; color: var(--text-secondary);">
-                Maintain full programmatic sovereignty over corporate treasury funds. Withdraw unallocated payroll balances on-demand with zero counterparty risk.
+                You keep full control over treasury funds. Withdraw unallocated balances on-demand with zero counterparty risk.
               </p>
             </div>
 
             <div class="card card-gold" style="padding: var(--space-lg);">
               <div class="flex align-center gap-xs mb-sm">
-                <span style="font-size: 1.3rem;">🌍</span>
-                <strong style="color: var(--accent-gold); font-size: 1.05rem;">Global Regulated On/Off Ramps</strong>
+                <strong style="color: var(--accent-gold); font-size: 1.05rem;">Fiat off-ramps</strong>
               </div>
               <p style="font-size: 0.88rem; color: var(--text-secondary);">
-                Integrated with SEP-24 / SEP-6 anchor networks (MoneyGram, Bitso, Cowrie) enabling instant off-ramping into local fiat in 180+ countries.
+                Integrated with SEP-24 anchor networks (MoneyGram, Bitso, Cowrie) for local fiat conversion in 180+ countries.
               </p>
             </div>
           </div>
 
-          <!-- Interactive Enterprise Savings & ROI Calculator -->
-          <div class="card card-gold" style="padding: clamp(16px, 3vw, 32px); background: linear-gradient(145deg, rgba(26, 28, 38, 0.9) 0%, rgba(15, 18, 26, 0.95) 100%);">
+          <!-- ROI Calculator -->
+          <div class="card card-gold" style="padding: clamp(16px, 3vw, 32px); background: linear-gradient(145deg, rgba(24, 26, 36, 0.9) 0%, rgba(14, 16, 24, 0.95) 100%);">
             <div class="flex flex-between align-center mb-lg" style="flex-wrap: wrap; gap: var(--space-sm);">
               <div>
-                <span class="badge badge-active mb-xs">ROI Calculator</span>
-                <h3 style="margin: 0;">Enterprise Wire & Banking Cost Savings</h3>
+                <span class="badge badge-active mb-xs">Calculator</span>
+                <h3 style="margin: 0;">Estimate your savings</h3>
               </div>
-              <span class="text-muted" style="font-size: 0.85rem;">Stellar Soroban vs Traditional International Banking</span>
+              <span class="text-muted" style="font-size: 0.85rem;">Stellar vs. traditional banking</span>
             </div>
 
             <div class="grid-2 gap-xl" style="align-items: center;">
               <div>
                 <div class="form-group mb-lg">
                   <div class="form-label">
-                    <span>Global Team Size (Employees / Contractors)</span>
-                    <span class="mono font-bold" id="ent-team-label" style="color: var(--accent-mint); font-size: 1.05rem; white-space: nowrap;">${enterpriseTeamSize} Members</span>
+                    <span>Team size</span>
+                    <span class="mono font-bold" id="ent-team-label" style="color: var(--accent-mint); font-size: 1.05rem; white-space: nowrap;">${enterpriseTeamSize} people</span>
                   </div>
                   <input type="range" id="ent-team-range" min="5" max="500" step="5" value="${enterpriseTeamSize}" style="width: 100%; accent-color: var(--accent-mint);">
                 </div>
 
                 <div class="form-group mb-lg">
                   <div class="form-label">
-                    <span>Average Monthly Salary per Member (USD / XLM)</span>
+                    <span>Avg. monthly salary</span>
                     <span class="mono font-bold" id="ent-salary-label" style="color: var(--accent-gold); font-size: 1.05rem; white-space: nowrap;">$${enterpriseAvgSalary.toLocaleString()}</span>
                   </div>
                   <input type="range" id="ent-salary-range" min="1000" max="15000" step="500" value="${enterpriseAvgSalary}" style="width: 100%; accent-color: var(--accent-gold);">
@@ -251,32 +239,32 @@ export function renderLanding(app) {
 
                 <div class="card-flat" style="padding: 14px 16px; background: rgba(0,0,0,0.4);">
                   <div class="flex flex-between flex-wrap gap-xs mb-xs" style="font-size: 0.85rem;">
-                    <span class="text-muted">Legacy Wire Fees ($35/wire):</span>
-                    <span class="mono text-danger font-semibold" id="ent-val-wires" style="white-space: nowrap;">$${roi.monthlyTraditionalWireFees.toLocaleString()} / mo</span>
+                    <span class="text-muted">Wire fees ($35/wire):</span>
+                    <span class="mono text-danger font-semibold" id="ent-val-wires" style="white-space: nowrap;">$${roi.monthlyWireFees.toLocaleString()} / mo</span>
                   </div>
                   <div class="flex flex-between flex-wrap gap-xs mb-xs" style="font-size: 0.85rem;">
-                    <span class="text-muted">Bank FX Spread & Intermediaries (2.2%):</span>
-                    <span class="mono text-danger font-semibold" id="ent-val-fx" style="white-space: nowrap;">$${roi.monthlyTraditionalFX.toFixed(0)} / mo</span>
+                    <span class="text-muted">FX spread (2.2%):</span>
+                    <span class="mono text-danger font-semibold" id="ent-val-fx" style="white-space: nowrap;">$${roi.monthlyFX.toFixed(0)} / mo</span>
                   </div>
                   <div class="flex flex-between flex-wrap gap-xs" style="font-size: 0.85rem;">
-                    <span class="text-muted">StreamFlow Stellar Gas Fee:</span>
-                    <span class="mono text-success font-semibold" style="white-space: nowrap;">&lt; $0.05 / mo</span>
+                    <span class="text-muted">Stellar gas:</span>
+                    <span class="mono text-success font-semibold" style="white-space: nowrap;">< $0.05 / mo</span>
                   </div>
                 </div>
               </div>
 
               <div style="background: rgba(7, 8, 12, 0.9); padding: clamp(16px, 3vw, 28px); border-radius: var(--radius-lg); border: 1px solid var(--glass-border-gold); text-align: center;">
                 <span class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
-                  Estimated Annual Cost Savings
+                  Annual savings
                 </span>
                 <div class="mono font-bold gold-text mt-md mb-md" id="ent-annual-savings" style="font-size: clamp(1.8rem, 3.5vw, 2.8rem); line-height: 1.2;">
                   $${Math.round(roi.annualSavings).toLocaleString()}
                 </div>
                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: var(--space-lg);" id="ent-savings-desc">
-                  Switching to Stellar Soroban streaming payroll saves your company over <strong style="color: var(--accent-gold);">$${Math.round(roi.monthlyTraditionalTotal).toLocaleString()}/month</strong> in unnecessary banking tolls.
+                  That's <strong style="color: var(--accent-gold);">$${Math.round(roi.monthlyTotal).toLocaleString()}/month</strong> in banking fees you don't need to pay.
                 </p>
                 <a href="/onboarding" data-link class="btn btn-gold btn-lg w-full" style="width: 100%;">
-                  🚀 Scale Enterprise Payroll Now
+                  Get Started
                 </a>
               </div>
             </div>
@@ -284,21 +272,21 @@ export function renderLanding(app) {
         </div>
       </section>
 
-      <!-- ─── Interactive Calculator Section ─── -->
+      <!-- Simulator -->
       <section class="page" id="simulator" style="padding: var(--space-2xl) 0;">
         <div class="container">
           <div class="card" style="padding: var(--space-2xl); border-color: var(--glass-border-emerald); background: linear-gradient(135deg, rgba(16, 20, 29, 0.9) 0%, rgba(13, 24, 22, 0.7) 100%);">
             <div style="text-align: center; margin-bottom: var(--space-xl);">
-              <div class="badge badge-active mb-xs">Live Simulator</div>
-              <h2>Experience <span class="gradient-text">Sub-Second Streaming</span></h2>
-              <p class="text-muted">Adjust target salary below to watch micro-accrual occur in real-time.</p>
+              <div class="badge badge-active mb-xs">Live demo</div>
+              <h2>Watch it stream in <span class="gradient-text">real time</span></h2>
+              <p class="text-muted">Set a salary below and watch micro-payments accrue every fraction of a second.</p>
             </div>
 
             <div class="grid-2 gap-xl" style="align-items: center;">
               <div>
                 <div class="form-group mb-lg">
                   <div class="form-label">
-                    <span>Monthly Salary (USD / USDC / XLM)</span>
+                    <span>Monthly salary</span>
                     <span class="mono font-bold" id="sim-salary-label" style="font-size: 1.2rem; color: var(--accent-mint);">$6,500</span>
                   </div>
                   <input type="range" id="sim-salary-range" min="1000" max="25000" step="500" value="6500" style="width: 100%; accent-color: var(--accent-mint);">
@@ -306,32 +294,32 @@ export function renderLanding(app) {
 
                 <div class="card-flat" style="padding: var(--space-md); background: rgba(0, 0, 0, 0.4); border-color: rgba(255,255,255,0.06);">
                   <div class="flex flex-between mb-sm" style="font-size: 0.88rem;">
-                    <span class="text-muted">Continuous Per-Second Rate:</span>
+                    <span class="text-muted">Per-second rate:</span>
                     <span class="mono font-bold text-accent" id="sim-rate-sec">$0.002508 / sec</span>
                   </div>
                   <div class="flex flex-between mb-sm" style="font-size: 0.88rem;">
-                    <span class="text-muted">Working Hourly Velocity:</span>
+                    <span class="text-muted">Hourly rate:</span>
                     <span class="mono font-semibold" id="sim-rate-hr" style="color: var(--accent-gold);">$40.63 / hr</span>
                   </div>
                   <div class="flex flex-between" style="font-size: 0.88rem;">
-                    <span class="text-muted">Stellar Network Fee:</span>
-                    <span class="mono font-semibold" style="color: var(--accent-mint);">&lt; 0.00001 XLM</span>
+                    <span class="text-muted">Network fee:</span>
+                    <span class="mono font-semibold" style="color: var(--accent-mint);">< 0.00001 XLM</span>
                   </div>
                 </div>
               </div>
 
               <div style="background: rgba(7, 8, 12, 0.85); padding: var(--space-xl); border-radius: var(--radius-lg); border: 1px solid var(--glass-border-emerald); text-align: center;">
                 <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
-                  Live Accrued Balance In This Browser Session
+                  Accrued this session
                 </div>
                 <div class="mono font-bold streaming mt-md mb-md" id="sim-live-counter" style="font-size: 2.6rem; font-variant-numeric: tabular-nums;">
                   $0.000000
                 </div>
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: var(--space-md);">
-                  ⚡ Checkpointed on Soroban persistent ledger storage
+                  Checkpointed on Soroban persistent storage
                 </p>
                 <a href="/onboarding" data-link class="btn btn-primary btn-sm">
-                  Start Live Stream →
+                  Start a Real Stream
                 </a>
               </div>
             </div>
@@ -339,82 +327,78 @@ export function renderLanding(app) {
         </div>
       </section>
 
-      <!-- ─── Interactive Footer ─── -->
+      <!-- Footer -->
       <footer class="footer">
         <div class="container">
           <div class="footer-grid">
-            <!-- Brand Column -->
             <div class="footer-col">
               <div class="flex align-center gap-xs mb-sm" style="display: flex; align-items: center; gap: 8px; white-space: nowrap;">
-                <img src="/logo.svg" alt="StreamFlow Logo" width="28" height="28" style="flex-shrink: 0;">
+                <img src="/logo.svg" alt="StreamFlow" width="28" height="28" style="flex-shrink: 0;">
                 <span class="font-bold" style="font-size: 1.2rem; white-space: nowrap;">Stream<span class="gradient-text">Flow</span></span>
               </div>
               <p class="text-muted" style="font-size: 0.85rem; margin-bottom: var(--space-md); line-height: 1.6;">
-                Enterprise real-time streaming payroll and vesting protocol built natively on Stellar Soroban smart contracts.
+                Real-time streaming payroll on Stellar Soroban. Pay your team by the second.
               </p>
               <div class="status-badge-live">
                 <span class="status-dot-live"></span>
-                <span>Stellar Testnet: Operational (3.2s finality)</span>
+                <span>Testnet: Operational</span>
               </div>
             </div>
 
-            <!-- Product Links -->
             <div class="footer-col">
               <h4>Product</h4>
               <ul class="footer-links">
                 <li><a href="/employer" data-link>Employer Dashboard</a></li>
                 <li><a href="/employee" data-link>Employee Portal</a></li>
-                <li><a href="#enterprise">Enterprise Batch CSV</a></li>
+                <li><a href="#enterprise">Batch Payroll</a></li>
                 <li><a href="#features">Cliff Vesting</a></li>
-                <li><a href="/employee#anchor-offramp" data-link>SEP-24 Anchor Off-Ramps</a></li>
-                <li><a href="#simulator">Live Flow Simulator</a></li>
+                <li><a href="/employee#anchor-offramp" data-link>Off-Ramps (SEP-24)</a></li>
+                <li><a href="#simulator">Calculator</a></li>
               </ul>
             </div>
 
-            <!-- Developer & Documentation Links -->
             <div class="footer-col">
-              <h4>Developers & Docs</h4>
+              <h4>Resources</h4>
               <ul class="footer-links">
                 <li>
                   <a href="https://developers.stellar.org/docs/learn/smart-contract-internals" target="_blank" rel="noopener noreferrer">
-                    Stellar Soroban Docs ↗
+                    Soroban Docs
                   </a>
                 </li>
                 <li>
                   <a href="https://stellar.expert/explorer/testnet/contract/${CONTRACTS?.STREAM || CONTRACTS?.stream || 'CBFFR6AVRP5W4GETTCYU774MIWXWUO73MYYMAUPFQBB4QGWOCMZXEJAQ'}" target="_blank" rel="noopener noreferrer">
-                    Stream Contract Explorer ↗
+                    Stream Contract
                   </a>
                 </li>
                 <li>
                   <a href="https://stellar.expert/explorer/testnet/contract/${CONTRACTS?.TREASURY || CONTRACTS?.treasury || 'CBHI5NW6HYK7Z4VOYCUR3KQBDX6ATFYZIAEWGRGOWAZIP2TLT4U5HAQB'}" target="_blank" rel="noopener noreferrer">
-                    Treasury Contract Explorer ↗
+                    Treasury Contract
                   </a>
                 </li>
                 <li>
                   <a href="https://developers.stellar.org/docs/data/rpc" target="_blank" rel="noopener noreferrer">
-                    Soroban RPC Specs ↗
+                    Soroban RPC
                   </a>
                 </li>
                 <li>
                   <a href="https://stellar.org/anchors" target="_blank" rel="noopener noreferrer">
-                    Stellar Anchor Directory ↗
+                    Anchor Directory
                   </a>
                 </li>
               </ul>
             </div>
 
-            <!-- Legal, Governance & Newsletter -->
             <div class="footer-col">
-              <h4>Legal & Updates</h4>
+              <h4>Legal</h4>
               <ul class="footer-links mb-md">
                 <li><button type="button" id="btn-open-privacy">Privacy Policy</button></li>
                 <li><button type="button" id="btn-open-terms">Terms of Service</button></li>
-                <li><button type="button" id="btn-open-security">Security & Risk Disclaimers</button></li>
+                <li><button type="button" id="btn-open-security">Security Disclosures</button></li>
               </ul>
 
-              <h4 style="margin-bottom: 8px; font-size: 0.85rem;">Protocol Updates</h4>
+              <h4 style="margin-bottom: 8px; font-size: 0.85rem;">Updates</h4>
               <form id="form-newsletter" class="footer-newsletter">
-                <input type="email" id="input-newsletter-email" placeholder="dev@company.com" required>
+                <input type="email" id="input-newsletter-email" placeholder="you@company.com" required>
                 <button type="submit" class="btn btn-primary btn-sm">Join</button>
               </form>
             </div>
@@ -422,19 +406,18 @@ export function renderLanding(app) {
 
           <div class="footer-bottom">
             <div>
-              © 2026 StreamFlow Protocol • Non-Custodial Smart Contract Infrastructure on Stellar Soroban
+              &copy; 2026 StreamFlow
             </div>
             <div class="flex gap-md" style="flex-wrap: wrap;">
               <span class="mono text-muted" style="font-size: 0.75rem;">Contract: ${(CONTRACTS?.STREAM || CONTRACTS?.stream || 'CBFFR6AVRP5W4GETTCYU774MIWXWUO73MYYMAUPFQBB4QGWOCMZXEJAQ').slice(0, 8)}...${(CONTRACTS?.STREAM || CONTRACTS?.stream || 'CBFFR6AVRP5W4GETTCYU774MIWXWUO73MYYMAUPFQBB4QGWOCMZXEJAQ').slice(-6)}</span>
               <a href="https://github.com/Shashiverm/streamflow" target="_blank" rel="noopener noreferrer" style="font-size: 0.82rem; color: var(--text-muted);">
-                GitHub Repository ↗
+                GitHub
               </a>
             </div>
           </div>
         </div>
       </footer>
 
-      <!-- ─── Legal & Policy Modals Container ─── -->
       <div id="legal-modal-container">
         ${renderActiveModal()}
       </div>
@@ -453,54 +436,54 @@ export function renderLanding(app) {
       title = 'Privacy Policy';
       body = `
         <p><strong>Effective Date:</strong> January 1, 2026</p>
-        <p>StreamFlow ("Protocol", "we", "our") is a non-custodial decentralized application deployed on the Stellar blockchain network.</p>
+        <p>StreamFlow is a non-custodial decentralized application on the Stellar blockchain.</p>
 
         <h4>1. Information We Do Not Collect</h4>
-        <p>We do not operate centralized user databases, nor do we collect, store, or sell personally identifiable information (PII) such as your legal name, physical address, passport numbers, or private cryptographic keys.</p>
+        <p>We do not operate centralized databases, nor do we collect, store, or sell personally identifiable information such as your name, address, or private keys.</p>
 
-        <h4>2. On-Chain Ledger Data</h4>
-        <p>When you interact with StreamFlow smart contracts (creating streams, withdrawing funds, or initializing treasuries), your transactions are permanently recorded on the public Stellar blockchain. This includes your public wallet address, transaction amounts, timestamps, and contract interaction payloads.</p>
+        <h4>2. On-Chain Data</h4>
+        <p>Transactions with StreamFlow smart contracts are permanently recorded on the public Stellar blockchain. This includes your public wallet address, amounts, timestamps, and contract payloads.</p>
 
-        <h4>3. Client-Side Local Storage</h4>
-        <p>To improve user experience, StreamFlow stores temporary connection preferences, recent transaction caches, and session parameters in your browser's local storage (localStorage). This data remains strictly on your local device.</p>
+        <h4>3. Local Storage</h4>
+        <p>StreamFlow stores session preferences and recent transaction caches in your browser's localStorage. This data stays on your device.</p>
 
         <h4>4. Third-Party Services</h4>
-        <p>When off-ramping funds via regulated SEP-24 / SEP-6 Stellar Anchors (e.g. MoneyGram, Bitso, Cowrie), you are subject to the respective privacy policies and KYC/AML procedures of those independent third-party institutions.</p>
+        <p>When using SEP-24 anchors for off-ramping, you are subject to those institutions' privacy policies and KYC/AML requirements.</p>
       `;
     } else if (activeModal === 'terms') {
       title = 'Terms of Service';
       body = `
         <p><strong>Last Updated:</strong> January 1, 2026</p>
-        
-        <h4>1. Protocol Nature & Non-Custodial Architecture</h4>
-        <p>StreamFlow provides access to immutable open-source smart contracts deployed on the Stellar Soroban network. StreamFlow does not take custody of your crypto assets, control your private keys, or act as an intermediary financial broker.</p>
+
+        <h4>1. Non-Custodial Architecture</h4>
+        <p>StreamFlow provides access to open-source smart contracts deployed on Stellar Soroban. We do not custody your assets, control your keys, or act as a financial intermediary.</p>
 
         <h4>2. User Responsibilities</h4>
         <ul>
-          <li>You are solely responsible for safeguarding your private keys and seed phrases.</li>
-          <li>You agree to comply with all applicable local taxation and payroll withholding laws in your jurisdiction.</li>
-          <li>You acknowledge that blockchain transactions are irreversible once validated by Stellar validators.</li>
+          <li>You are responsible for safeguarding your private keys and seed phrases.</li>
+          <li>You agree to comply with applicable tax and payroll laws in your jurisdiction.</li>
+          <li>You acknowledge that blockchain transactions are irreversible.</li>
         </ul>
 
-        <h4>3. Smart Contract & Network Risks</h4>
-        <p>Smart contracts operate on decentralized computer networks. While our contracts have been built following best security practices, you acknowledge the inherent risks associated with experimental cryptographic systems, testnet resets, and distributed network latency.</p>
+        <h4>3. Risks</h4>
+        <p>Smart contracts operate on decentralized networks. You acknowledge the inherent risks of experimental cryptographic systems, testnet resets, and network latency.</p>
 
         <h4>4. No Financial Advice</h4>
-        <p>Nothing on the StreamFlow interface constitutes financial, legal, investment, or tax advice. All streaming operations are performed at your own discretion.</p>
+        <p>Nothing on StreamFlow constitutes financial, legal, or tax advice. All operations are at your own discretion.</p>
       `;
     } else if (activeModal === 'security') {
-      title = 'Security & Risk Disclaimers';
+      title = 'Security Disclosures';
       body = `
-        <h4>Security Architecture</h4>
+        <h4>Security Approach</h4>
         <ul>
-          <li><strong>Zero Custody:</strong> Contract liquidity is held in dedicated Soroban contract instances with cryptographic checkpoint math.</li>
-          <li><strong>Pro-Rata Settlement Fairness:</strong> Contract cancellation logic mathematically guarantees that workers receive all earned wages up to the exact second of cancellation.</li>
-          <li><strong>Recipient Key Rotation:</strong> Built-in <code>transfer_recipient</code> function enables hardware key migration without stream termination.</li>
-          <li><strong>Formal Unit Testing:</strong> 17 comprehensive unit tests verify boundary conditions, panic scenarios, and multi-vault authorization.</li>
+          <li><strong>Non-custodial:</strong> Funds are held in dedicated Soroban contract instances with checkpoint math.</li>
+          <li><strong>Fair settlement:</strong> Cancellation logic guarantees workers receive all earned wages up to the exact second.</li>
+          <li><strong>Key rotation:</strong> Built-in <code>transfer_recipient</code> enables key migration without stream termination.</li>
+          <li><strong>Testing:</strong> 17 comprehensive unit tests cover boundary conditions and authorization.</li>
         </ul>
 
-        <h4>Regulatory Compliance</h4>
-        <p>StreamFlow is designed to support standard Stellar Asset Contract (SAC) tokens and compliant regulated stablecoins (e.g., Circle USDC, EURC). All fiat on/off ramps operate via SEP-24 certified Stellar Anchor financial institutions.</p>
+        <h4>Compliance</h4>
+        <p>StreamFlow supports standard Stellar Asset Contract tokens and compliant stablecoins (USDC, EURC). All fiat ramps operate via SEP-24 certified Stellar Anchors.</p>
       `;
     }
 
@@ -509,7 +492,7 @@ export function renderLanding(app) {
         <div class="modal-content" style="max-width: 640px;">
           <div class="modal-header">
             <h3 style="margin: 0;">${title}</h3>
-            <button class="modal-close" id="btn-close-legal">✕</button>
+            <button class="modal-close" id="btn-close-legal">&times;</button>
           </div>
           <div class="legal-modal-body">
             ${body}
@@ -520,24 +503,14 @@ export function renderLanding(app) {
   }
 
   function updateModalContainer() {
-    const modalContainer = document.getElementById('legal-modal-container');
-    if (modalContainer) {
-      modalContainer.innerHTML = renderActiveModal();
-      attachModalListeners();
-    }
+    const c = document.getElementById('legal-modal-container');
+    if (c) { c.innerHTML = renderActiveModal(); attachModalListeners(); }
   }
 
   function attachModalListeners() {
-    document.getElementById('btn-close-legal')?.addEventListener('click', () => {
-      activeModal = null;
-      updateModalContainer();
-    });
-
+    document.getElementById('btn-close-legal')?.addEventListener('click', () => { activeModal = null; updateModalContainer(); });
     document.getElementById('modal-backdrop-legal')?.addEventListener('click', (e) => {
-      if (e.target.id === 'modal-backdrop-legal') {
-        activeModal = null;
-        updateModalContainer();
-      }
+      if (e.target.id === 'modal-backdrop-legal') { activeModal = null; updateModalContainer(); }
     });
   }
 
@@ -550,32 +523,18 @@ export function renderLanding(app) {
     const savingsEl = document.getElementById('ent-annual-savings');
     const descEl = document.getElementById('ent-savings-desc');
 
-    if (teamLabel) teamLabel.textContent = `${enterpriseTeamSize} Members`;
+    if (teamLabel) teamLabel.textContent = `${enterpriseTeamSize} people`;
     if (salaryLabel) salaryLabel.textContent = `$${enterpriseAvgSalary.toLocaleString()}`;
-    if (wiresEl) wiresEl.textContent = `$${roi.monthlyTraditionalWireFees.toLocaleString()} / mo`;
-    if (fxEl) fxEl.textContent = `$${roi.monthlyTraditionalFX.toFixed(0)} / mo`;
+    if (wiresEl) wiresEl.textContent = `$${roi.monthlyWireFees.toLocaleString()} / mo`;
+    if (fxEl) fxEl.textContent = `$${roi.monthlyFX.toFixed(0)} / mo`;
     if (savingsEl) savingsEl.textContent = `$${Math.round(roi.annualSavings).toLocaleString()}`;
-    if (descEl) {
-      descEl.innerHTML = `Switching to Stellar Soroban streaming payroll saves your company over <strong style="color: var(--accent-gold);">$${Math.round(roi.monthlyTraditionalTotal).toLocaleString()}/month</strong> in unnecessary banking tolls.`;
-    }
+    if (descEl) descEl.innerHTML = `That's <strong style="color: var(--accent-gold);">$${Math.round(roi.monthlyTotal).toLocaleString()}/month</strong> in banking fees you don't need to pay.`;
   }
 
   function attachListeners() {
-    // Enterprise Calculator listeners
-    const entTeamRange = document.getElementById('ent-team-range');
-    const entSalaryRange = document.getElementById('ent-salary-range');
+    document.getElementById('ent-team-range')?.addEventListener('input', (e) => { enterpriseTeamSize = parseInt(e.target.value) || 45; updateEnterpriseCalculations(); });
+    document.getElementById('ent-salary-range')?.addEventListener('input', (e) => { enterpriseAvgSalary = parseInt(e.target.value) || 5000; updateEnterpriseCalculations(); });
 
-    entTeamRange?.addEventListener('input', (e) => {
-      enterpriseTeamSize = parseInt(e.target.value) || 45;
-      updateEnterpriseCalculations();
-    });
-
-    entSalaryRange?.addEventListener('input', (e) => {
-      enterpriseAvgSalary = parseInt(e.target.value) || 5000;
-      updateEnterpriseCalculations();
-    });
-
-    // Live Simulator Range
     const simRange = document.getElementById('sim-salary-range');
     simRange?.addEventListener('input', (e) => {
       simSalary = parseFloat(e.target.value) || 6500;
@@ -589,30 +548,16 @@ export function renderLanding(app) {
       if (simRateHr) simRateHr.textContent = `$${hourlyRate.toFixed(2)} / hr`;
     });
 
-    // Legal Modals triggers
-    document.getElementById('btn-open-privacy')?.addEventListener('click', () => {
-      activeModal = 'privacy';
-      updateModalContainer();
-    });
-
-    document.getElementById('btn-open-terms')?.addEventListener('click', () => {
-      activeModal = 'terms';
-      updateModalContainer();
-    });
-
-    document.getElementById('btn-open-security')?.addEventListener('click', () => {
-      activeModal = 'security';
-      updateModalContainer();
-    });
-
+    document.getElementById('btn-open-privacy')?.addEventListener('click', () => { activeModal = 'privacy'; updateModalContainer(); });
+    document.getElementById('btn-open-terms')?.addEventListener('click', () => { activeModal = 'terms'; updateModalContainer(); });
+    document.getElementById('btn-open-security')?.addEventListener('click', () => { activeModal = 'security'; updateModalContainer(); });
     attachModalListeners();
 
-    // Newsletter Form
     document.getElementById('form-newsletter')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const emailInput = document.getElementById('input-newsletter-email');
       if (emailInput && emailInput.value) {
-        showToast(`Subscribed ${emailInput.value} for StreamFlow protocol updates!`, 'success');
+        showToast(`Subscribed ${emailInput.value}`, 'success');
         emailInput.value = '';
       }
     });
@@ -620,28 +565,21 @@ export function renderLanding(app) {
 
   render();
 
-  // Streaming counter animation loop
+  // Counter animation
   function animateCounter() {
-    streamedAmount += Math.random() * 0.8 + 0.2;
-    const counterEl = document.getElementById('streaming-counter');
-    if (counterEl) {
-      counterEl.textContent = `$${streamedAmount.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      })}`;
-    }
+    streamedAmount += Math.random() * 0.6 + 0.15;
+    const el = document.getElementById('streaming-counter');
+    if (el) el.textContent = `$${Math.round(streamedAmount).toLocaleString()}`;
     animFrame = requestAnimationFrame(animateCounter);
   }
   animateCounter();
 
-  // Micro-accrual simulator loop
+  // Simulator accrual loop
   const simInterval = setInterval(() => {
     const ratePerSec = simSalary / (30 * 86400);
     sessionAccrued += ratePerSec / 10;
-    const simLiveCounter = document.getElementById('sim-live-counter');
-    if (simLiveCounter) {
-      simLiveCounter.textContent = `$${sessionAccrued.toFixed(6)}`;
-    }
+    const el = document.getElementById('sim-live-counter');
+    if (el) el.textContent = `$${sessionAccrued.toFixed(6)}`;
   }, 100);
 
   return () => {

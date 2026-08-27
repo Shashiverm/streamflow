@@ -1,6 +1,5 @@
 /**
  * StreamFlow — Main Application Entry
- * Enterprise Real-Time Payroll Streaming & Vesting on Stellar Soroban
  */
 
 import './styles/index.css';
@@ -10,7 +9,6 @@ import { renderOnboarding } from './pages/onboarding.js';
 import { renderEmployer } from './pages/employer.js';
 import { renderEmployee } from './pages/employee.js';
 import { renderFeedbackWidget } from './feedback.js';
-import { trackPerformance } from './analytics.js';
 
 // Register routes
 route('/', renderLanding);
@@ -38,9 +36,3 @@ document.addEventListener('click', (e) => {
     if (nav) nav.classList.remove('active');
   }
 });
-
-console.log(
-  '%c StreamFlow %c Real-Time Payroll & Vesting Protocol on Stellar ',
-  'background: linear-gradient(135deg, #10b981, #fbbf24); color: #06080b; padding: 4px 8px; border-radius: 4px 0 0 4px; font-weight: bold;',
-  'background: #0d0f15; color: #00f5a0; padding: 4px 8px; border-radius: 0 4px 4px 0; font-family: monospace;'
-);

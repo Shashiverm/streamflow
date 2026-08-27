@@ -4,23 +4,28 @@
 
 const routes = {};
 let currentCleanup = null;
+let isNavigating = false;
 
 export function route(path, handler) {
   routes[path] = handler;
 }
 
 export function navigate(path) {
+  if (isNavigating) return; // prevent double-navigation
   window.history.pushState({}, '', path);
   render();
 }
 
 export async function render() {
+  if (isNavigating) return;
+  isNavigating = true;
+
   const path = window.location.pathname;
   const app = document.getElementById('app');
 
   // Clean up previous page
   if (currentCleanup && typeof currentCleanup === 'function') {
-    currentCleanup();
+    try { currentCleanup(); } catch {}
     currentCleanup = null;
   }
 
@@ -28,11 +33,17 @@ export async function render() {
   const handler = routes[path] || routes['/'];
 
   if (handler) {
-    const result = await handler(app);
-    if (typeof result === 'function') {
-      currentCleanup = result;
+    try {
+      const result = await handler(app);
+      if (typeof result === 'function') {
+        currentCleanup = result;
+      }
+    } catch (err) {
+      console.error('[Router] Page render error:', err);
     }
   }
+
+  isNavigating = false;
 }
 
 export function initRouter() {

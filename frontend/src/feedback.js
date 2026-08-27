@@ -1,48 +1,34 @@
 /**
- * StreamFlow — Luxury Floating User Feedback Widget
+ * StreamFlow — Feedback Widget
  */
 
 const FEEDBACK_KEY = 'streamflow_feedback';
-
-const SEED_FEEDBACK = [
-  {
-    name: 'Souvik Mandal',
-    userAddress: 'GDKHLI3JCIRIKHOY5UJIVNEYGQOZXQSPE4SRWMKG7B77VAQE7SSYQMU6',
-    rating: 5,
-    comment: "Continuous streaming payroll is game-changing. Single transaction, instant withdrawals, zero latency.",
-    timestamp: new Date().toISOString(),
-  },
-  {
-    name: 'Anubhab Rakshit',
-    userAddress: 'GAXMN5XJDKC5LULYYTCMTAC7NZZWA6DL3GJQD362HJ3C2KADPK5JQD4C',
-    rating: 5,
-    comment: 'UI looks incredible in Obsidian & Emerald. Transactions on Stellar Soroban are fast and flawless.',
-    timestamp: new Date().toISOString(),
-  },
-];
+const MAX_COMMENT_LENGTH = 500;
+const MAX_FEEDBACK_ENTRIES = 100;
 
 function getFeedbackStore() {
   try {
     const raw = localStorage.getItem(FEEDBACK_KEY);
-    if (!raw) {
-      localStorage.setItem(FEEDBACK_KEY, JSON.stringify(SEED_FEEDBACK));
-      return SEED_FEEDBACK;
-    }
-    return JSON.parse(raw) || SEED_FEEDBACK;
+    return raw ? JSON.parse(raw) : [];
   } catch {
-    return SEED_FEEDBACK;
+    return [];
   }
 }
 
 function saveFeedbackStore(data) {
+  // Cap stored entries
+  if (data.length > MAX_FEEDBACK_ENTRIES) data = data.slice(-MAX_FEEDBACK_ENTRIES);
   localStorage.setItem(FEEDBACK_KEY, JSON.stringify(data));
 }
 
 export function submitFeedback(rating, comment, userAddress = '') {
+  if (rating < 1 || rating > 5) return;
+  // Sanitize comment
+  const sanitized = comment.slice(0, MAX_COMMENT_LENGTH).replace(/[<>]/g, '');
   const store = getFeedbackStore();
   store.push({
     rating,
-    comment,
+    comment: sanitized,
     userAddress,
     timestamp: new Date().toISOString(),
   });
@@ -51,14 +37,7 @@ export function submitFeedback(rating, comment, userAddress = '') {
 
 export function getFeedbackSummary() {
   const store = getFeedbackStore();
-  if (store.length === 0) {
-    return {
-      count: 0,
-      averageRating: 0,
-      entries: [],
-    };
-  }
-
+  if (store.length === 0) return { count: 0, averageRating: 0, entries: [] };
   const total = store.reduce((sum, f) => sum + f.rating, 0);
   return {
     count: store.length,
@@ -79,7 +58,7 @@ export function renderFeedbackWidget(container) {
     const summary = getFeedbackSummary();
 
     widget.innerHTML = `
-      <button class="feedback-trigger ${isOpen ? 'active' : ''}" id="feedback-toggle" title="Share Feedback" aria-label="Share Feedback">
+      <button class="feedback-trigger ${isOpen ? 'active' : ''}" id="feedback-toggle" title="Feedback" aria-label="Feedback">
         <span class="feedback-trigger-icon">${isOpen ? '✕' : '💬'}</span>
         <span class="feedback-trigger-label">Feedback</span>
       </button>
@@ -88,14 +67,14 @@ export function renderFeedbackWidget(container) {
         <div class="feedback-panel">
           <div class="feedback-panel-header">
             <div>
-              <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Share Feedback</h4>
-              <span class="text-muted" style="font-size: 0.76rem;">Help us build the best payroll protocol</span>
+              <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary);">Feedback</h4>
+              <span class="text-muted" style="font-size: 0.76rem;">Help us improve StreamFlow</span>
             </div>
-            <button class="feedback-close" id="feedback-panel-close">✕</button>
+            <button class="feedback-close" id="feedback-panel-close">&times;</button>
           </div>
 
           <div class="feedback-rating-row">
-            <span style="font-size: 0.82rem; color: var(--text-secondary);">Your Rating:</span>
+            <span style="font-size: 0.82rem; color: var(--text-secondary);">Rating:</span>
             <div class="rating-stars" id="rating-stars">
               ${[1, 2, 3, 4, 5].map(n => `
                 <button type="button" data-rating="${n}" class="star-btn ${n <= selectedRating ? 'active' : ''}">
@@ -106,17 +85,19 @@ export function renderFeedbackWidget(container) {
           </div>
 
           <div class="form-group mb-sm">
-            <textarea id="feedback-comment" class="form-input" rows="3" placeholder="What do you think of the contract speed & UI?"></textarea>
+            <textarea id="feedback-comment" class="form-input" rows="3" maxlength="${MAX_COMMENT_LENGTH}" placeholder="What do you think?"></textarea>
           </div>
 
           <button class="btn btn-primary btn-sm w-full" id="submit-feedback">
-            ⚡ Submit Feedback
+            Submit
           </button>
 
-          <div class="flex flex-between align-center mt-sm" style="font-size: 0.72rem; color: var(--text-muted); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
-            <span>⭐ ${summary.averageRating} / 5.0 Average</span>
-            <span>${summary.count} Reviews</span>
-          </div>
+          ${summary.count > 0 ? `
+            <div class="flex flex-between align-center mt-sm" style="font-size: 0.72rem; color: var(--text-muted); padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06);">
+              <span>${summary.averageRating} / 5.0 avg</span>
+              <span>${summary.count} reviews</span>
+            </div>
+          ` : ''}
         </div>
       ` : ''}
     `;
