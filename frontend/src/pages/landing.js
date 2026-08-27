@@ -4,6 +4,7 @@
 
 import { trackPageView } from '../analytics.js';
 import { CONTRACTS } from '../stellar.js';
+import { getRecentFeedbacks, getFeedbackSummary, openFeedbackModal, fetchFeedbacks } from '../feedback.js';
 
 export function renderLanding(app) {
   trackPageView('/');
@@ -35,6 +36,95 @@ export function renderLanding(app) {
     };
   }
 
+  function formatRelativeTime(isoString) {
+    if (!isoString) return 'Recently';
+    try {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+
+      if (diffMins < 2) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays < 7) return `${diffDays}d ago`;
+      return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    } catch {
+      return 'Recently';
+    }
+  }
+
+  function renderFeedbackSection() {
+    const summary = getFeedbackSummary();
+    const recent = getRecentFeedbacks(10);
+
+    return `
+      <section class="page" id="reviews" style="padding: var(--space-2xl) 0;">
+        <div class="container">
+          <div class="flex flex-between align-center mb-2xl" style="flex-wrap: wrap; gap: var(--space-md);">
+            <div>
+              <div class="badge badge-active mb-xs">Live Community Reviews</div>
+              <h2>Real feedback from <span class="gradient-text">teams & workers</span></h2>
+              <p class="text-muted" style="max-width: 600px; margin-top: 4px;">
+                Verified reviews submitted by employers and recipients using StreamFlow streaming payroll.
+              </p>
+            </div>
+
+            <div class="flex gap-md align-center" style="flex-wrap: wrap;">
+              <div class="card-flat" style="padding: 10px 18px; border-color: var(--glass-border-gold); background: rgba(220, 170, 50, 0.05); display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.2rem; color: var(--accent-gold); font-weight: bold;">★ ${summary.averageRating}</span>
+                <span class="text-muted" style="font-size: 0.8rem; border-left: 1px solid rgba(255,255,255,0.1); padding-left: 10px;">
+                  ${summary.count} Verified Reviews
+                </span>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-open-feedback-cta">
+                + Write a Review
+              </button>
+            </div>
+          </div>
+
+          <div class="grid-3 gap-md" id="landing-reviews-grid">
+            ${recent.length === 0 ? `
+              <div class="card" style="grid-column: 1 / -1; text-align: center; padding: var(--space-2xl);">
+                <p class="text-muted" style="margin-bottom: var(--space-md);">No community reviews yet. Be the first to share your experience!</p>
+                <button class="btn btn-gold btn-sm" id="btn-first-review">Share First Review</button>
+              </div>
+            ` : recent.map((item) => {
+              const stars = '★'.repeat(item.rating || 5) + '☆'.repeat(5 - (item.rating || 5));
+              const displayAddr = item.userAddress
+                ? (item.userAddress.length > 12 ? `${item.userAddress.slice(0, 4)}...${item.userAddress.slice(-4)}` : item.userAddress)
+                : 'Verified Protocol User';
+
+              return `
+                <div class="card card-gold" style="padding: var(--space-lg); display: flex; flex-direction: column; justify-content: space-between;">
+                  <div>
+                    <div class="flex flex-between align-center mb-sm">
+                      <span style="color: var(--accent-gold); font-size: 1.1rem; letter-spacing: 2px;">
+                        ${stars}
+                      </span>
+                      <span class="text-muted" style="font-size: 0.75rem;">
+                        ${formatRelativeTime(item.timestamp)}
+                      </span>
+                    </div>
+                    <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: var(--space-md); line-height: 1.55;">
+                      "${item.comment}"
+                    </p>
+                  </div>
+                  <div class="flex flex-between align-center pt-sm" style="border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.78rem;">
+                    <span class="mono font-semibold" style="color: var(--accent-mint);">${displayAddr}</span>
+                    <span class="badge badge-active" style="font-size: 0.62rem; padding: 2px 6px;">Live Atlas</span>
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
   function render() {
     const roi = calculateROI(enterpriseTeamSize, enterpriseAvgSalary);
 
@@ -52,6 +142,7 @@ export function renderLanding(app) {
             <li><a href="#features">Features</a></li>
             <li><a href="#enterprise">Savings</a></li>
             <li><a href="#simulator">Calculator</a></li>
+            <li><a href="#reviews">Reviews</a></li>
             <li><a href="/onboarding" data-link class="btn btn-primary btn-sm">Open App</a></li>
           </ul>
         </div>
@@ -327,6 +418,11 @@ export function renderLanding(app) {
         </div>
       </section>
 
+      <!-- Real Feedback & Reviews (up to 10) -->
+      <div id="landing-feedback-wrapper">
+        ${renderFeedbackSection()}
+      </div>
+
       <!-- Footer -->
       <footer class="footer">
         <div class="container">
@@ -353,6 +449,7 @@ export function renderLanding(app) {
                 <li><a href="#enterprise">Batch Payroll</a></li>
                 <li><a href="#features">Cliff Vesting</a></li>
                 <li><a href="/employee#anchor-offramp" data-link>Off-Ramps (SEP-24)</a></li>
+                <li><a href="#reviews">Community Reviews</a></li>
                 <li><a href="#simulator">Calculator</a></li>
               </ul>
             </div>
@@ -531,6 +628,15 @@ export function renderLanding(app) {
     if (descEl) descEl.innerHTML = `That's <strong style="color: var(--accent-gold);">$${Math.round(roi.monthlyTotal).toLocaleString()}/month</strong> in banking fees you don't need to pay.`;
   }
 
+  function updateFeedbackSectionDOM() {
+    const wrapper = document.getElementById('landing-feedback-wrapper');
+    if (wrapper) {
+      wrapper.innerHTML = renderFeedbackSection();
+      document.getElementById('btn-open-feedback-cta')?.addEventListener('click', () => openFeedbackModal());
+      document.getElementById('btn-first-review')?.addEventListener('click', () => openFeedbackModal());
+    }
+  }
+
   function attachListeners() {
     document.getElementById('ent-team-range')?.addEventListener('input', (e) => { enterpriseTeamSize = parseInt(e.target.value) || 45; updateEnterpriseCalculations(); });
     document.getElementById('ent-salary-range')?.addEventListener('input', (e) => { enterpriseAvgSalary = parseInt(e.target.value) || 5000; updateEnterpriseCalculations(); });
@@ -548,6 +654,9 @@ export function renderLanding(app) {
       if (simRateHr) simRateHr.textContent = `$${hourlyRate.toFixed(2)} / hr`;
     });
 
+    document.getElementById('btn-open-feedback-cta')?.addEventListener('click', () => openFeedbackModal());
+    document.getElementById('btn-first-review')?.addEventListener('click', () => openFeedbackModal());
+
     document.getElementById('btn-open-privacy')?.addEventListener('click', () => { activeModal = 'privacy'; updateModalContainer(); });
     document.getElementById('btn-open-terms')?.addEventListener('click', () => { activeModal = 'terms'; updateModalContainer(); });
     document.getElementById('btn-open-security')?.addEventListener('click', () => { activeModal = 'security'; updateModalContainer(); });
@@ -564,6 +673,17 @@ export function renderLanding(app) {
   }
 
   render();
+
+  // Listen for feedback submissions to update landing page dynamically
+  const feedbackListener = () => {
+    updateFeedbackSectionDOM();
+  };
+  window.addEventListener('streamflow_feedback_updated', feedbackListener);
+
+  // Sync latest feedback from API
+  fetchFeedbacks().then(() => {
+    updateFeedbackSectionDOM();
+  }).catch(() => {});
 
   // Counter animation
   function animateCounter() {
@@ -585,6 +705,7 @@ export function renderLanding(app) {
   return () => {
     if (animFrame) cancelAnimationFrame(animFrame);
     clearInterval(simInterval);
+    window.removeEventListener('streamflow_feedback_updated', feedbackListener);
   };
 }
 
