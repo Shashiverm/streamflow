@@ -10,6 +10,7 @@
 
 import { CONTRACTS, getConnectedAddress } from './stellar.js';
 import { trackEvent } from './analytics.js';
+import { isValidStellarAddress } from './utils.js';
 
 // ──────────────────────────────────────────────
 // Storage layer: chunked localStorage + LRU cache
@@ -306,8 +307,8 @@ function _genTxHash() {
 // ──────────────────────────────────────────────
 
 export async function createStream(employer, employee, tokenSymbol, ratePerSecond, durationSeconds, cliffSeconds = 0) {
-  if (!employer) throw new Error('Employer address required.');
-  if (!employee || !employee.startsWith('G')) throw new Error('Valid Stellar address starting with G required.');
+  if (!employer || !isValidStellarAddress(employer)) throw new Error('Valid employer address required.');
+  if (!employee || !isValidStellarAddress(employee)) throw new Error('Valid 56-character Stellar public key (starting with G) required.');
   if (ratePerSecond <= 0) throw new Error('Rate must be positive.');
   if (durationSeconds <= 0) throw new Error('Duration must be positive.');
   if (cliffSeconds < 0 || cliffSeconds > durationSeconds) throw new Error('Cliff period cannot exceed stream duration.');
@@ -353,7 +354,7 @@ export async function batchCreateStreams(employer, streamsData) {
 
   for (const item of streamsData) {
     const { employee, tokenSymbol = 'XLM', ratePerSecond, durationSeconds, cliffSeconds = 0 } = item;
-    if (!employee || !employee.startsWith('G')) throw new Error(`Invalid address: ${employee}`);
+    if (!employee || !isValidStellarAddress(employee)) throw new Error(`Invalid 56-char Stellar recipient address: ${employee}`);
     if (ratePerSecond <= 0 || durationSeconds <= 0) throw new Error(`Invalid params for ${employee}`);
 
     const totalFunded = ratePerSecond * durationSeconds;
@@ -450,7 +451,7 @@ export async function batchWithdrawAll(employee, streamIds) {
 }
 
 export async function transferRecipient(streamId, currentEmployee, newEmployee) {
-  if (!newEmployee || !newEmployee.startsWith('G')) throw new Error('Valid Stellar address starting with G required.');
+  if (!newEmployee || !isValidStellarAddress(newEmployee)) throw new Error('Valid 56-character Stellar address starting with G required.');
 
   const stream = _getStream(streamId);
   if (!stream) throw new Error('Stream not found');

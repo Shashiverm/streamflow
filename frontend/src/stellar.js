@@ -13,6 +13,7 @@ import {
   getNetworkDetails as freighterGetNetworkDetails,
 } from '@stellar/freighter-api';
 import { trackEvent, trackError } from './analytics.js';
+import { isValidStellarAddress, isValidStellarSecret } from './utils.js';
 
 export const NETWORK = 'TESTNET';
 export const HORIZON_URL = 'https://horizon-testnet.stellar.org';
@@ -512,7 +513,7 @@ export async function createInstantTestnetAccount() {
 export async function connectSecretKey(secretKey) {
   try {
     secretKey = (secretKey || '').trim();
-    if (!secretKey.startsWith('S') || secretKey.length !== 56) {
+    if (!isValidStellarSecret(secretKey)) {
       throw new Error('Invalid Stellar Secret Key format. It should start with "S" and be 56 characters long.');
     }
 

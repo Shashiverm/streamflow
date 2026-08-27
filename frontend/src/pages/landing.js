@@ -5,6 +5,7 @@
 import { trackPageView } from '../analytics.js';
 import { CONTRACTS } from '../stellar.js';
 import { getRecentFeedbacks, getFeedbackSummary, openFeedbackModal, fetchFeedbacks } from '../feedback.js';
+import { escapeHtml } from '../utils.js';
 
 export function renderLanding(app) {
   trackPageView('/');
@@ -93,10 +94,11 @@ export function renderLanding(app) {
               </div>
             ` : recent.map((item) => {
               const stars = '★'.repeat(item.rating || 5) + '☆'.repeat(5 - (item.rating || 5));
-              const displayName = item.name || 'Anonymous User';
+              const displayName = escapeHtml(item.name || 'Anonymous User');
               const displayAddr = item.userAddress
-                ? (item.userAddress.length > 12 ? `${item.userAddress.slice(0, 4)}...${item.userAddress.slice(-4)}` : item.userAddress)
+                ? escapeHtml(item.userAddress.length > 12 ? `${item.userAddress.slice(0, 4)}...${item.userAddress.slice(-4)}` : item.userAddress)
                 : '';
+              const safeComment = escapeHtml(item.comment || '');
 
               return `
                 <div class="card card-gold" style="padding: var(--space-lg); display: flex; flex-direction: column; justify-content: space-between;">
@@ -111,12 +113,12 @@ export function renderLanding(app) {
                       ${formatRelativeTime(item.timestamp)}
                     </div>
                     <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: var(--space-md); line-height: 1.55;">
-                      "${item.comment}"
+                      "${safeComment}"
                     </p>
                   </div>
                   <div class="flex flex-between align-center pt-sm" style="border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.78rem;">
                     ${displayAddr ? `
-                      <span class="mono font-semibold" style="color: var(--accent-mint); font-size: 0.75rem;" title="${item.userAddress}">
+                      <span class="mono font-semibold" style="color: var(--accent-mint); font-size: 0.75rem;">
                         ${displayAddr}
                       </span>
                     ` : `
