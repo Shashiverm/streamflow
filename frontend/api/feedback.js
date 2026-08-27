@@ -5,6 +5,7 @@ let cachedClient = null;
 
 async function getClient() {
   if (cachedClient) return cachedClient;
+  if (!uri) return null;
   const client = new MongoClient(uri, {
     maxPoolSize: 10,
     serverSelectionTimeoutMS: 5000,
@@ -25,6 +26,9 @@ export default async function handler(req, res) {
 
   try {
     const client = await getClient();
+    if (!client) {
+      return res.status(500).json({ success: false, error: 'Database URI not configured.' });
+    }
     const db = client.db('streamflow');
     const collection = db.collection('feedback');
 
@@ -40,8 +44,9 @@ export default async function handler(req, res) {
         success: true,
         data: items.map(item => ({
           id: item._id.toString(),
-          rating: item.rating,
-          comment: item.comment,
+          name: item.name || 'Anonymous User',
+          rating: item.rating || 5,
+          comment: item.comment || item.message || '',
           userAddress: item.userAddress || '',
           timestamp: item.timestamp,
         })),
@@ -50,17 +55,27 @@ export default async function handler(req, res) {
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-      const { rating, comment, userAddress } = body || {};
+      const { name, comment, message, userAddress, rating } = body || {};
 
-      const numRating = parseInt(rating, 10);
-      if (!numRating || numRating < 1 || numRating > 5) {
+      const sanitizedName = (name || '').toString().slice(0, 100).trim();
+      const sanitizedComment = (comment || message || '').toString().slice(0, 500).trim();
+      const sanitizedAddress = (userAddress || '').toString().slice(0, 64).trim();
+      const numRating = parseInt(rating, 10) || 5;
+
+      if (!sanitizedName) {
+        return res.status(400).json({ success: false, error: 'Name is required.' });
+      }
+
+      if (!sanitizedComment) {
+        return res.status(400).json({ success: false, error: 'Message is required.' });
+      }
+
+      if (numRating < 1 || numRating > 5) {
         return res.status(400).json({ success: false, error: 'Invalid rating (must be 1-5).' });
       }
 
-      const sanitizedComment = (comment || '').toString().slice(0, 500).trim();
-      const sanitizedAddress = (userAddress || '').toString().slice(0, 64).trim();
-
       const newEntry = {
+        name: sanitizedName,
         rating: numRating,
         comment: sanitizedComment,
         userAddress: sanitizedAddress,

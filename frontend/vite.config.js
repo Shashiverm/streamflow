@@ -2,6 +2,12 @@ import { defineConfig } from 'vite';
 import { MongoClient } from 'mongodb';
 import fs from 'fs';
 import path from 'path';
+import dns from 'dns';
+
+// Fix Node.js SRV DNS lookup issues on Windows
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch {}
 
 function loadEnvUri() {
   try {
@@ -11,26 +17,37 @@ function loadEnvUri() {
       const match = content.match(/MONGODB_URI=["']?([^"'\r\n]+)["']?/);
       if (match) return match[1];
     }
-  } catch { }
+  } catch {}
   return process.env.MONGODB_URI;
 }
 
 const mongoUri = loadEnvUri();
 let cachedClient = null;
+let lastErrorTime = 0;
 
 async function getDbCollection() {
   if (!mongoUri) return null;
+  if (Date.now() - lastErrorTime < 30000) return null;
+
   try {
     if (!cachedClient) {
-      cachedClient = new MongoClient(mongoUri, { serverSelectionTimeoutMS: 4000 });
+      cachedClient = new MongoClient(mongoUri, {
+        serverSelectionTimeoutMS: 3000,
+        connectTimeoutMS: 3000,
+      });
       await cachedClient.connect();
+      console.log('[Vite Dev API] Connected to MongoDB Atlas.');
     }
     return cachedClient.db('streamflow').collection('feedback');
   } catch (err) {
-    console.warn('[Vite Dev API] MongoDB connection fallback:', err.message);
+    lastErrorTime = Date.now();
+    cachedClient = null;
     return null;
   }
 }
+
+// In-memory fallback cache for dev server
+const localDevFeedbacks = [];
 
 function feedbackApiPlugin() {
   return {
@@ -57,23 +74,26 @@ function feedbackApiPlugin() {
           if (col) {
             try {
               const items = await col.find({}).sort({ timestamp: -1 }).limit(50).toArray();
-              res.statusCode = 200;
-              return res.end(JSON.stringify({
-                success: true,
-                data: items.map(i => ({
-                  id: i._id.toString(),
-                  rating: i.rating,
-                  comment: i.comment,
-                  userAddress: i.userAddress || '',
-                  timestamp: i.timestamp
-                }))
-              }));
+              if (items.length > 0) {
+                res.statusCode = 200;
+                return res.end(JSON.stringify({
+                  success: true,
+                  data: items.map(i => ({
+                    id: i._id.toString(),
+                    name: i.name || 'Anonymous User',
+                    rating: i.rating || 5,
+                    comment: i.comment || i.message || '',
+                    userAddress: i.userAddress || '',
+                    timestamp: i.timestamp
+                  }))
+                }));
+              }
             } catch (e) {
-              console.error('[Vite Dev API] Query error:', e);
+              lastErrorTime = Date.now();
             }
           }
           res.statusCode = 200;
-          return res.end(JSON.stringify({ success: true, data: [] }));
+          return res.end(JSON.stringify({ success: true, data: localDevFeedbacks }));
         }
 
         if (req.method === 'POST') {
@@ -82,30 +102,52 @@ function feedbackApiPlugin() {
           req.on('end', async () => {
             try {
               const parsed = JSON.parse(body || '{}');
-              const { rating, comment, userAddress } = parsed;
-              const numRating = parseInt(rating, 10);
-              if (!numRating || numRating < 1 || numRating > 5) {
+              const { name, comment, message, userAddress, rating } = parsed;
+              const sanitizedName = (name || '').slice(0, 100).trim();
+              const sanitizedComment = (comment || message || '').slice(0, 500).trim();
+              const sanitizedAddress = (userAddress || '').slice(0, 64).trim();
+              const numRating = parseInt(rating, 10) || 5;
+
+              if (!sanitizedName) {
                 res.statusCode = 400;
-                return res.end(JSON.stringify({ success: false, error: 'Invalid rating.' }));
+                return res.end(JSON.stringify({ success: false, error: 'Name is required.' }));
+              }
+
+              if (!sanitizedComment) {
+                res.statusCode = 400;
+                return res.end(JSON.stringify({ success: false, error: 'Message is required.' }));
               }
 
               const newEntry = {
+                id: 'local_' + Date.now(),
+                name: sanitizedName,
                 rating: numRating,
-                comment: (comment || '').slice(0, 500),
-                userAddress: (userAddress || '').slice(0, 64),
+                comment: sanitizedComment,
+                userAddress: sanitizedAddress,
                 timestamp: new Date().toISOString()
               };
 
-              let id = 'local_' + Date.now();
+              localDevFeedbacks.unshift(newEntry);
+
               if (col) {
-                const result = await col.insertOne(newEntry);
-                id = result.insertedId.toString();
+                try {
+                  const result = await col.insertOne({
+                    name: newEntry.name,
+                    rating: newEntry.rating,
+                    comment: newEntry.comment,
+                    userAddress: newEntry.userAddress,
+                    timestamp: newEntry.timestamp
+                  });
+                  newEntry.id = result.insertedId.toString();
+                } catch (insertErr) {
+                  lastErrorTime = Date.now();
+                }
               }
 
               res.statusCode = 201;
               return res.end(JSON.stringify({
                 success: true,
-                data: { id, ...newEntry }
+                data: newEntry
               }));
             } catch (err) {
               res.statusCode = 500;

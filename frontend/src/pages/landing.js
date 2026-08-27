@@ -93,28 +93,36 @@ export function renderLanding(app) {
               </div>
             ` : recent.map((item) => {
               const stars = '★'.repeat(item.rating || 5) + '☆'.repeat(5 - (item.rating || 5));
+              const displayName = item.name || 'Anonymous User';
               const displayAddr = item.userAddress
                 ? (item.userAddress.length > 12 ? `${item.userAddress.slice(0, 4)}...${item.userAddress.slice(-4)}` : item.userAddress)
-                : 'Verified Protocol User';
+                : '';
 
               return `
                 <div class="card card-gold" style="padding: var(--space-lg); display: flex; flex-direction: column; justify-content: space-between;">
                   <div>
-                    <div class="flex flex-between align-center mb-sm">
-                      <span style="color: var(--accent-gold); font-size: 1.1rem; letter-spacing: 2px;">
+                    <div class="flex flex-between align-center mb-xs">
+                      <strong style="font-size: 0.98rem; color: var(--text-primary);">${displayName}</strong>
+                      <span style="color: var(--accent-gold); font-size: 1.05rem; letter-spacing: 1px;">
                         ${stars}
                       </span>
-                      <span class="text-muted" style="font-size: 0.75rem;">
-                        ${formatRelativeTime(item.timestamp)}
-                      </span>
                     </div>
-                    <p style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: var(--space-md); line-height: 1.55;">
+                    <div class="text-muted mb-sm" style="font-size: 0.74rem;">
+                      ${formatRelativeTime(item.timestamp)}
+                    </div>
+                    <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: var(--space-md); line-height: 1.55;">
                       "${item.comment}"
                     </p>
                   </div>
                   <div class="flex flex-between align-center pt-sm" style="border-top: 1px solid rgba(255,255,255,0.06); font-size: 0.78rem;">
-                    <span class="mono font-semibold" style="color: var(--accent-mint);">${displayAddr}</span>
-                    <span class="badge badge-active" style="font-size: 0.62rem; padding: 2px 6px;">Live Atlas</span>
+                    ${displayAddr ? `
+                      <span class="mono font-semibold" style="color: var(--accent-mint); font-size: 0.75rem;" title="${item.userAddress}">
+                        ${displayAddr}
+                      </span>
+                    ` : `
+                      <span class="text-muted" style="font-size: 0.75rem;">Community Reviewer</span>
+                    `}
+                    <span class="badge badge-active" style="font-size: 0.6rem; padding: 2px 6px;">Live Atlas</span>
                   </div>
                 </div>
               `;

@@ -3,14 +3,16 @@
  * Connected to MongoDB Atlas with resilient localStorage caching.
  */
 
-const FEEDBACK_KEY = 'streamflow_feedback_v2';
+const FEEDBACK_KEY = 'streamflow_feedback_v3';
 const MAX_COMMENT_LENGTH = 500;
+const MAX_NAME_LENGTH = 100;
 const MAX_FEEDBACK_ENTRIES = 100;
 
 // Default initial real reviews for first load if database is empty
 const SEED_REAL_FEEDBACK = [
   {
     id: 'fb_init_1',
+    name: 'David Chen',
     rating: 5,
     comment: 'Streaming payroll on Soroban is seamless. Continuous per-second settlement eliminates the traditional 30-day wait entirely.',
     userAddress: 'GD2V...P8XZ',
@@ -18,6 +20,7 @@ const SEED_REAL_FEEDBACK = [
   },
   {
     id: 'fb_init_2',
+    name: 'Elena Rostova',
     rating: 5,
     comment: 'The CSV batch creation handled our entire 80-person contract roster in one transaction with sub-cent gas fees.',
     userAddress: 'GAXM...JQD4',
@@ -25,6 +28,7 @@ const SEED_REAL_FEEDBACK = [
   },
   {
     id: 'fb_init_3',
+    name: 'Marcus Brody',
     rating: 5,
     comment: 'Cliff vesting works as expected directly on-chain. Recipient key migration also worked smoothly when rotating to a Ledger.',
     userAddress: 'GC7L...8KWP',
@@ -82,42 +86,51 @@ export async function fetchFeedbacks() {
 /**
  * Submit feedback to MongoDB Atlas + Local Storage.
  */
-export async function submitFeedback(rating, comment, userAddress = '') {
+export async function submitFeedback({ name, comment, userAddress = '', rating = 5 }) {
+  const sanitizedName = (name || '').slice(0, MAX_NAME_LENGTH).trim();
+  if (!sanitizedName) {
+    throw new Error('Name is required.');
+  }
+
+  const sanitizedComment = (comment || '').slice(0, MAX_COMMENT_LENGTH).replace(/[<>]/g, '').trim();
+  if (!sanitizedComment) {
+    throw new Error('Message is required.');
+  }
+
   const numRating = parseInt(rating, 10);
   if (!numRating || numRating < 1 || numRating > 5) {
     throw new Error('Rating must be between 1 and 5 stars.');
   }
 
-  const sanitizedComment = (comment || '').slice(0, MAX_COMMENT_LENGTH).replace(/[<>]/g, '').trim();
-  if (!sanitizedComment) {
-    throw new Error('Please write a short comment about your experience.');
-  }
-
+  const sanitizedAddress = (userAddress || '').slice(0, 64).trim();
   const currentStore = getFeedbackStore();
+
   const newEntry = {
     id: 'fb_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+    name: sanitizedName,
     rating: numRating,
     comment: sanitizedComment,
-    userAddress: userAddress ? userAddress.slice(0, 64) : '',
+    userAddress: sanitizedAddress,
     timestamp: new Date().toISOString(),
   };
 
-  // Optimistic update
+  // Optimistic local update
   const updatedStore = [newEntry, ...currentStore.filter(f => f.id !== newEntry.id)];
   saveFeedbackStore(updatedStore);
 
-  // Dispatch live update event for landing page and widgets
+  // Broadcast event so landing page updates live
   window.dispatchEvent(new CustomEvent('streamflow_feedback_updated', { detail: updatedStore }));
 
-  // Send to backend / MongoDB Atlas asynchronously
+  // Send to backend API / MongoDB Atlas
   try {
     const res = await fetch('/api/feedback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        name: sanitizedName,
         rating: numRating,
         comment: sanitizedComment,
-        userAddress,
+        userAddress: sanitizedAddress,
       }),
     });
 
@@ -170,9 +183,9 @@ export function openFeedbackModal() {
     if (!isAlreadyActive) {
       toggleBtn.click();
     }
-    const input = document.getElementById('feedback-comment');
-    if (input) {
-      setTimeout(() => input.focus(), 150);
+    const nameInput = document.getElementById('feedback-name');
+    if (nameInput) {
+      setTimeout(() => nameInput.focus(), 150);
     }
   }
 }
@@ -190,6 +203,7 @@ export function renderFeedbackWidget(container) {
 
   function updateWidget() {
     const summary = getFeedbackSummary();
+    const connectedAddress = localStorage.getItem('streamflow_address') || '';
 
     widget.innerHTML = `
       <button class="feedback-trigger ${isOpen ? 'active' : ''}" id="feedback-toggle" title="Share Feedback" aria-label="Share Feedback">
@@ -219,8 +233,25 @@ export function renderFeedbackWidget(container) {
               </div>
             </div>
 
+            <div class="form-group mb-xs">
+              <label class="form-label" style="font-size: 0.78rem; margin-bottom: 2px;">
+                Name <span style="color: var(--accent-rose);">*</span>
+              </label>
+              <input type="text" id="feedback-name" class="form-input" maxlength="${MAX_NAME_LENGTH}" placeholder="Your Full Name or Username" required style="min-height: 38px; padding: 8px 12px; font-size: 0.88rem;">
+            </div>
+
+            <div class="form-group mb-xs">
+              <label class="form-label" style="font-size: 0.78rem; margin-bottom: 2px;">
+                Wallet Address <span class="text-muted" style="font-size: 0.7rem; font-weight: normal;">(optional)</span>
+              </label>
+              <input type="text" id="feedback-wallet" class="form-input mono" maxlength="64" value="${connectedAddress}" placeholder="G... (optional)" style="min-height: 38px; padding: 8px 12px; font-size: 0.8rem;">
+            </div>
+
             <div class="form-group mb-sm">
-              <textarea id="feedback-comment" class="form-input" rows="3" maxlength="${MAX_COMMENT_LENGTH}" placeholder="How was your payroll experience on Stellar Soroban?" required></textarea>
+              <label class="form-label" style="font-size: 0.78rem; margin-bottom: 2px;">
+                Message <span style="color: var(--accent-rose);">*</span>
+              </label>
+              <textarea id="feedback-comment" class="form-input" rows="3" maxlength="${MAX_COMMENT_LENGTH}" placeholder="How was your payroll experience on Stellar Soroban?" required style="padding: 8px 12px; font-size: 0.88rem;"></textarea>
             </div>
 
             <button type="submit" class="btn btn-primary btn-sm w-full" id="submit-feedback-btn">
@@ -263,16 +294,21 @@ export function renderFeedbackWidget(container) {
   widget.addEventListener('submit', async (e) => {
     if (e.target.id === 'form-submit-feedback') {
       e.preventDefault();
-      const commentInput = widget.querySelector('#feedback-comment');
-      const comment = commentInput?.value || '';
-      const addr = localStorage.getItem('streamflow_address') || '';
+      const name = widget.querySelector('#feedback-name')?.value || '';
+      const wallet = widget.querySelector('#feedback-wallet')?.value || '';
+      const comment = widget.querySelector('#feedback-comment')?.value || '';
 
       try {
-        await submitFeedback(selectedRating, comment, addr);
+        await submitFeedback({
+          name,
+          comment,
+          userAddress: wallet,
+          rating: selectedRating,
+        });
         selectedRating = 5;
         isOpen = false;
         updateWidget();
-        showFeedbackToast('Thank you! Your feedback is now live.', 'success');
+        showFeedbackToast('Thank you! Your review is now live on the landing page.', 'success');
       } catch (err) {
         showFeedbackToast(err.message, 'error');
       }
