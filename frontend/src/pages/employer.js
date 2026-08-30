@@ -239,8 +239,8 @@ export function renderEmployer(app) {
               <span class="badge badge-active">${allStreams.length} total</span>
             </div>
 
-            <div class="flex gap-sm align-center flex-wrap">
-              <input type="text" class="form-input" id="stream-search" placeholder="Search address or ID..." value="${searchQuery}" style="width: 220px; min-height: 38px; padding: 6px 12px; font-size: 0.85rem;">
+            <div class="flex gap-sm align-center flex-wrap" style="width: 100%; max-width: 500px; justify-content: flex-end;">
+              <input type="text" class="form-input search-input-mobile" id="stream-search" placeholder="Search address or ID..." value="${searchQuery}" style="min-height: 38px; padding: 6px 12px; font-size: 0.85rem; flex: 1 1 180px;">
 
               <div class="tab-group" style="margin: 0;">
                 <button class="tab-btn ${currentFilter === 'All' ? 'active' : ''}" data-filter="All">All</button>

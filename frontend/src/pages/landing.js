@@ -62,7 +62,7 @@ export function renderLanding(app) {
     const recent = getRecentFeedbacks(10);
 
     return `
-      <section class="page" id="reviews" style="padding: var(--space-2xl) 0;">
+      <section id="reviews" class="page-section">
         <div class="container">
           <div class="flex flex-between align-center mb-2xl" style="flex-wrap: wrap; gap: var(--space-md);">
             <div>
@@ -88,7 +88,7 @@ export function renderLanding(app) {
 
           <div class="grid-3 gap-md" id="landing-reviews-grid">
             ${recent.length === 0 ? `
-              <div class="card" style="grid-column: 1 / -1; text-align: center; padding: var(--space-2xl);">
+              <div class="card" style="grid-column: 1 / -1; text-align: center; padding: clamp(20px, 4vw, 40px);">
                 <p class="text-muted" style="margin-bottom: var(--space-md);">No community reviews yet. Be the first to share your experience!</p>
                 <button class="btn btn-gold btn-sm" id="btn-first-review">Share First Review</button>
               </div>
@@ -101,11 +101,11 @@ export function renderLanding(app) {
               const safeComment = escapeHtml(item.comment || '');
 
               return `
-                <div class="card card-gold" style="padding: var(--space-lg); display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="card card-gold" style="padding: clamp(14px, 3vw, 20px); display: flex; flex-direction: column; justify-content: space-between;">
                   <div>
-                    <div class="flex flex-between align-center mb-xs">
-                      <strong style="font-size: 0.98rem; color: var(--text-primary);">${displayName}</strong>
-                      <span style="color: var(--accent-gold); font-size: 1.05rem; letter-spacing: 1px;">
+                    <div class="flex flex-between align-center mb-xs" style="flex-wrap: wrap; gap: 4px;">
+                      <strong style="font-size: 0.95rem; color: var(--text-primary);">${displayName}</strong>
+                      <span style="color: var(--accent-gold); font-size: 1rem; letter-spacing: 1px;">
                         ${stars}
                       </span>
                     </div>
@@ -159,7 +159,7 @@ export function renderLanding(app) {
       </nav>
 
       <!-- Hero -->
-      <section class="page" style="padding-top: calc(68px + var(--space-2xl)); text-align: center; position: relative;">
+      <section class="page-section" style="padding-top: calc(68px + clamp(20px, 4vw, 48px)); text-align: center; position: relative;">
         <div class="container">
           <div style="display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border-radius: var(--radius-full); background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.20); font-size: 0.82rem; font-weight: 600; color: var(--accent-mint); margin-bottom: var(--space-lg);">
             Built on Stellar Soroban
@@ -170,21 +170,21 @@ export function renderLanding(app) {
             <span class="gradient-text">every second</span>
           </h1>
 
-          <p style="max-width: 620px; margin: 0 auto var(--space-xl); font-size: 1.1rem; color: var(--text-secondary);">
+          <p style="max-width: 620px; margin: 0 auto var(--space-xl); font-size: clamp(0.95rem, 2.5vw, 1.15rem); color: var(--text-secondary); line-height: 1.6;">
             Stop waiting for payday. StreamFlow lets employers run continuous payroll on-chain — employees withdraw what they've earned, whenever they want.
           </p>
 
           <div class="flex flex-center gap-md flex-wrap mb-2xl" style="margin-bottom: 44px; position: relative; z-index: 2;">
-            <a href="/onboarding" data-link class="btn btn-primary btn-lg">
+            <a href="/onboarding" data-link class="btn btn-primary btn-lg btn-full-mobile">
               Connect Wallet
             </a>
-            <a href="#simulator" class="btn btn-outline btn-lg">
+            <a href="#simulator" class="btn btn-outline btn-lg btn-full-mobile">
               Try the Calculator
             </a>
           </div>
 
           <!-- Stats -->
-          <div class="grid-4 gap-md mb-3xl">
+          <div class="grid-4 gap-md mb-2xl">
             <div class="card stat-card card-gold">
               <div class="stat-header">
                 <span class="stat-label">Total Streamed</span>
@@ -221,7 +221,7 @@ export function renderLanding(app) {
       </section>
 
       <!-- Features -->
-      <section class="page" id="features" style="padding: var(--space-2xl) 0;">
+      <section id="features" class="page-section">
         <div class="container">
           <div class="text-center mb-2xl" style="text-align: center;">
             <div class="badge badge-active mb-sm">How it works</div>
@@ -230,37 +230,37 @@ export function renderLanding(app) {
           </div>
 
           <div class="grid-3 gap-lg">
-            <div class="card" style="padding: var(--space-xl);">
+            <div class="card" style="padding: clamp(16px, 3vw, 24px);">
               <div class="stat-icon mb-md">$</div>
               <h3 class="mb-sm">Per-second accrual</h3>
               <p>Salaries accrue on-chain continuously. Workers withdraw earned income anytime without waiting for monthly payroll runs.</p>
             </div>
 
-            <div class="card card-gold" style="padding: var(--space-xl);">
+            <div class="card card-gold" style="padding: clamp(16px, 3vw, 24px);">
               <div class="stat-icon gold mb-md">#</div>
               <h3 class="mb-sm">Cliff vesting</h3>
               <p>Define custom lockup periods directly in the smart contract. Tokens stay locked until the cliff elapses — no workarounds needed.</p>
             </div>
 
-            <div class="card" style="padding: var(--space-xl);">
+            <div class="card" style="padding: clamp(16px, 3vw, 24px);">
               <div class="stat-icon mb-md">+</div>
               <h3 class="mb-sm">Batch payroll</h3>
               <p>Upload a CSV or paste a roster to create hundreds of streams in one atomic transaction. One signature, done.</p>
             </div>
 
-            <div class="card" style="padding: var(--space-xl);">
+            <div class="card" style="padding: clamp(16px, 3vw, 24px);">
               <div class="stat-icon mb-md">V</div>
               <h3 class="mb-sm">Treasury vaults</h3>
               <p>Fund a dedicated employer treasury once. Capital gets allocated to active streams while the rest stays liquid and withdrawable.</p>
             </div>
 
-            <div class="card card-gold" style="padding: var(--space-xl);">
+            <div class="card card-gold" style="padding: clamp(16px, 3vw, 24px);">
               <div class="stat-icon gold mb-md">K</div>
               <h3 class="mb-sm">Key migration</h3>
               <p>Employees can rotate wallet addresses without cancelling streams. Useful for hardware key upgrades or team account changes.</p>
             </div>
 
-            <div class="card" style="padding: var(--space-xl);">
+            <div class="card" style="padding: clamp(16px, 3vw, 24px);">
               <div class="stat-icon mb-md">D</div>
               <h3 class="mb-sm">CSV exports</h3>
               <p>One-click download of all stream data and transaction audit trails for compliance, tax filing, or accounting.</p>
@@ -270,7 +270,7 @@ export function renderLanding(app) {
       </section>
 
       <!-- Enterprise Savings -->
-      <section class="page" id="enterprise" style="padding: var(--space-2xl) 0; position: relative;">
+      <section id="enterprise" class="page-section" style="position: relative;">
         <div class="container">
           <div class="text-center mb-2xl" style="text-align: center;">
             <div class="badge badge-cliff mb-sm">Cost comparison</div>
@@ -282,7 +282,7 @@ export function renderLanding(app) {
 
           <!-- Pillars -->
           <div class="grid-3 gap-lg mb-2xl">
-            <div class="card card-gold" style="padding: var(--space-lg);">
+            <div class="card card-gold" style="padding: clamp(16px, 3vw, 24px);">
               <div class="flex align-center gap-xs mb-sm">
                 <strong style="color: var(--accent-gold); font-size: 1.05rem;">Batch dispatch</strong>
               </div>
@@ -291,7 +291,7 @@ export function renderLanding(app) {
               </p>
             </div>
 
-            <div class="card" style="padding: var(--space-lg);">
+            <div class="card" style="padding: clamp(16px, 3vw, 24px);">
               <div class="flex align-center gap-xs mb-sm">
                 <strong style="color: var(--accent-mint); font-size: 1.05rem;">Non-custodial</strong>
               </div>
@@ -300,7 +300,7 @@ export function renderLanding(app) {
               </p>
             </div>
 
-            <div class="card card-gold" style="padding: var(--space-lg);">
+            <div class="card card-gold" style="padding: clamp(16px, 3vw, 24px);">
               <div class="flex align-center gap-xs mb-sm">
                 <strong style="color: var(--accent-gold); font-size: 1.05rem;">Fiat off-ramps</strong>
               </div>
@@ -311,7 +311,7 @@ export function renderLanding(app) {
           </div>
 
           <!-- ROI Calculator -->
-          <div class="card card-gold" style="padding: clamp(16px, 3vw, 32px); background: linear-gradient(145deg, rgba(24, 26, 36, 0.9) 0%, rgba(14, 16, 24, 0.95) 100%);">
+          <div class="card card-gold" style="padding: clamp(16px, 3.5vw, 32px); background: linear-gradient(145deg, rgba(24, 26, 36, 0.9) 0%, rgba(14, 16, 24, 0.95) 100%);">
             <div class="flex flex-between align-center mb-lg" style="flex-wrap: wrap; gap: var(--space-sm);">
               <div>
                 <span class="badge badge-active mb-xs">Calculator</span>
@@ -323,17 +323,17 @@ export function renderLanding(app) {
             <div class="grid-2 gap-xl" style="align-items: center;">
               <div>
                 <div class="form-group mb-lg">
-                  <div class="form-label">
+                  <div class="form-label" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span>Team size</span>
-                    <span class="mono font-bold" id="ent-team-label" style="color: var(--accent-mint); font-size: 1.05rem; white-space: nowrap;">${enterpriseTeamSize} people</span>
+                    <span class="mono font-bold" id="ent-team-label" style="color: var(--accent-mint); font-size: 1.05rem; white-space: nowrap; flex-shrink: 0;">${enterpriseTeamSize} people</span>
                   </div>
                   <input type="range" id="ent-team-range" min="5" max="500" step="5" value="${enterpriseTeamSize}" style="width: 100%; accent-color: var(--accent-mint);">
                 </div>
 
                 <div class="form-group mb-lg">
-                  <div class="form-label">
+                  <div class="form-label" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span>Avg. monthly salary</span>
-                    <span class="mono font-bold" id="ent-salary-label" style="color: var(--accent-gold); font-size: 1.05rem; white-space: nowrap;">$${enterpriseAvgSalary.toLocaleString()}</span>
+                    <span class="mono font-bold" id="ent-salary-label" style="color: var(--accent-gold); font-size: 1.05rem; white-space: nowrap; flex-shrink: 0;">$${enterpriseAvgSalary.toLocaleString()}</span>
                   </div>
                   <input type="range" id="ent-salary-range" min="1000" max="15000" step="500" value="${enterpriseAvgSalary}" style="width: 100%; accent-color: var(--accent-gold);">
                 </div>
@@ -374,9 +374,9 @@ export function renderLanding(app) {
       </section>
 
       <!-- Simulator -->
-      <section class="page" id="simulator" style="padding: var(--space-2xl) 0;">
+      <section id="simulator" class="page-section">
         <div class="container">
-          <div class="card" style="padding: var(--space-2xl); border-color: var(--glass-border-emerald); background: linear-gradient(135deg, rgba(16, 20, 29, 0.9) 0%, rgba(13, 24, 22, 0.7) 100%);">
+          <div class="card" style="padding: clamp(16px, 3.5vw, 32px); border-color: var(--glass-border-emerald); background: linear-gradient(135deg, rgba(16, 20, 29, 0.9) 0%, rgba(13, 24, 22, 0.7) 100%);">
             <div style="text-align: center; margin-bottom: var(--space-xl);">
               <div class="badge badge-active mb-xs">Live demo</div>
               <h2>Watch it stream in <span class="gradient-text">real time</span></h2>
@@ -386,9 +386,9 @@ export function renderLanding(app) {
             <div class="grid-2 gap-xl" style="align-items: center;">
               <div>
                 <div class="form-group mb-lg">
-                  <div class="form-label">
+                  <div class="form-label" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                     <span>Monthly salary</span>
-                    <span class="mono font-bold" id="sim-salary-label" style="font-size: 1.2rem; color: var(--accent-mint);">$6,500</span>
+                    <span class="mono font-bold" id="sim-salary-label" style="font-size: 1.2rem; color: var(--accent-mint); white-space: nowrap; flex-shrink: 0;">$6,500</span>
                   </div>
                   <input type="range" id="sim-salary-range" min="1000" max="25000" step="500" value="6500" style="width: 100%; accent-color: var(--accent-mint);">
                 </div>
@@ -409,11 +409,11 @@ export function renderLanding(app) {
                 </div>
               </div>
 
-              <div style="background: rgba(7, 8, 12, 0.85); padding: var(--space-xl); border-radius: var(--radius-lg); border: 1px solid var(--glass-border-emerald); text-align: center;">
+              <div style="background: rgba(7, 8, 12, 0.85); padding: clamp(16px, 3vw, 24px); border-radius: var(--radius-lg); border: 1px solid var(--glass-border-emerald); text-align: center;">
                 <div class="text-muted" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;">
                   Accrued this session
                 </div>
-                <div class="mono font-bold streaming mt-md mb-md" id="sim-live-counter" style="font-size: 2.6rem; font-variant-numeric: tabular-nums;">
+                <div class="mono font-bold streaming mt-md mb-md" id="sim-live-counter" style="font-size: clamp(1.8rem, 6vw, 2.6rem); font-variant-numeric: tabular-nums;">
                   $0.000000
                 </div>
                 <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: var(--space-md);">

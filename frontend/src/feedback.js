@@ -274,7 +274,7 @@ export function renderFeedbackWidget(container) {
   container.appendChild(widget);
 
   // Sync with MongoDB API on initial mount
-  fetchFeedbacks().then(() => updateWidget()).catch(() => {});
+  fetchFeedbacks().then(() => updateWidget()).catch(() => { });
 
   widget.addEventListener('click', (e) => {
     if (e.target.closest('#feedback-toggle') || e.target.closest('#feedback-panel-close')) {
@@ -308,7 +308,7 @@ export function renderFeedbackWidget(container) {
         selectedRating = 5;
         isOpen = false;
         updateWidget();
-        showFeedbackToast('Thank you! Your review is now live on the landing page.', 'success');
+        showFeedbackToast('Thank you for your valuable feedback! It matters a lot to us.', 'success');
       } catch (err) {
         showFeedbackToast(err.message, 'error');
       }

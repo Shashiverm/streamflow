@@ -22,16 +22,15 @@ initRouter();
 // Initialize feedback widget
 renderFeedbackWidget(document.body);
 
-// Global mobile navigation toggle
+// Global mobile navigation toggle & click-outside handling
 document.addEventListener('click', (e) => {
-  const toggleBtn = e.target.closest('#mobile-menu-toggle');
-  if (toggleBtn) {
-    toggleBtn.classList.toggle('active');
-    const nav = document.getElementById('navbar-nav');
+  const toggleBtn = document.getElementById('mobile-menu-toggle');
+  const nav = document.getElementById('navbar-nav');
+
+  if (e.target.closest('#mobile-menu-toggle')) {
+    if (toggleBtn) toggleBtn.classList.toggle('active');
     if (nav) nav.classList.toggle('active');
-  } else if (e.target.closest('#navbar-nav a')) {
-    const toggleBtn = document.getElementById('mobile-menu-toggle');
-    const nav = document.getElementById('navbar-nav');
+  } else if (e.target.closest('#navbar-nav a') || (!e.target.closest('#navbar-nav') && !e.target.closest('#mobile-menu-toggle'))) {
     if (toggleBtn) toggleBtn.classList.remove('active');
     if (nav) nav.classList.remove('active');
   }
